@@ -1,4 +1,7 @@
 #include "main.h"
+#include "drive.h"
+#include "slide.h"
+
 
 /**
  * A callback function for LLEMU's center button.
@@ -7,13 +10,6 @@
  * "I was pressed!" and nothing.
  */
 void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
 }
 
 /**
@@ -23,10 +19,7 @@ void on_center_button() {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
 
-	pros::lcd::register_btn1_cb(on_center_button);
 }
 
 /**
@@ -58,7 +51,26 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+//class Slide {
+//	int m_stop{ 0 }; //Number of degrees until the slide motor will refuse to extend
+//
+//public:
+//	void calibrate() { //Determine the m_stop value
+//		motor.move(-127)
+//
+//	}
+//	void fullMove(bool position) { //Method to either fully extend or retract slide depending on a bool
+//		if (position) {
+//			
+//		}
+//	}
+//
+//}
+
+slide1::Slide slide (10, true);
+
+void autonomous() {
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -71,22 +83,65 @@ void autonomous() {}
  *
  * If the robot is disabled or communications is lost, the
  * operator control task will be stopped. Re-enabling the robot will restart the
- * task, not resume it from where it left off.
+  provide “read-only” access to data. Therefore, the best practice is that they should retu* task, not resume it from where it left off.
  */
+struct inputValue {
+    int left{ };
+    int right{ };
+};
+
+void graph() {
+    inputValue list[255]{ };
+	for (int number{ 0 }; number < 255; ++number) {
+		list[number].left = number - 127;
+		std::cout << list[number].left << "," << driving::cvals(list[number].left) << "\n";
+	}
+}
+
 void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor left_mtr(1);
-	pros::Motor right_mtr(2);
+	// Construct the controller
+    pros::Controller master (pros::E_CONTROLLER_MASTER);
 
+	// Construct each of the 4 chassis movement motors
+    pros::Motor frontL (1);
+    pros::Motor frontR (3, true);
+    pros::Motor backL (2);
+    pros::Motor backR (4, true);
+    // Construct the slide motor
+    //pros::Motor slide (5);
+	// Construct the lift motor
+	pros::Motor lift (6);
+    // Set brake mode for select motors
+	//slide.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+
+//	graph();
+	std::cout << frontR.is_stopped() << "\n";
+	std::cout << frontR.get_actual_velocity() << "\n";
+	std::cout << "before routine \n";
+	slide.print();
+	slide.calibrate();
+	std::cout << "after routine \n";
 	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
-		int left = master.get_analog(ANALOG_LEFT_Y);
-		int right = master.get_analog(ANALOG_RIGHT_Y);
+		// Get stick analog values, correct them, and set variables
+		int leftStick { 0 };
+		leftStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)));
+		int rightStick { 0 };
+		rightStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)));
+		// Calculate the left and right speeds
+		int leftPwr { 0 };
+	    leftPwr = leftStick + rightStick;
+		int rightPwr { 0 };
+		rightPwr = leftStick - rightStick;
+	    // Move the wheels using the calculated values
+//		frontL.move(leftPwr);
+//		backL.move(leftPwr);
+//		frontR.move(rightPwr);
+//	    backR.move(rightPwr);
 
-		left_mtr = left;
-		right_mtr = right;
-		pros::delay(20);
+//		std::cout << master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) << "," << master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+//		std::cout << "," << driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) << "," << driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y));
+//		std::cout << "," << driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))) << "," << driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))) << "\n";
+		pros::delay(4);
 	}
 }
