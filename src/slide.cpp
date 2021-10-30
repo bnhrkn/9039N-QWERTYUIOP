@@ -1,8 +1,6 @@
 #include "slide.h"
-#include <stdint.h>	
-#include "main.h"
 
-namespace slide1 {
+namespace slider {
 
 void Slide::waitUntilMove(const pros::Motor& motor) {
     bool moving { false };
@@ -10,19 +8,17 @@ void Slide::waitUntilMove(const pros::Motor& motor) {
         if (abs(motor.get_actual_velocity()) != 0) {
             moving = true;
         }
-		std::cout << "waiting for start \n";
         pros::delay(5);
     }
 }
 
-void Slide::waitUntilStop(pros::Motor& motor) {
+void Slide::waitUntilStop(const pros::Motor& motor) {
     bool moving { true };
     while (moving) {
 //        if (motor.is_stopped() == 1) {
 		if (abs(motor.get_actual_velocity()) == 0) {
 			moving = false;
 		}
-		std::cout << "waiting for stop" << motor.is_stopped() << "    " << motor.get_actual_velocity() << "\n";
         pros::delay(5);
 	}
 }
@@ -31,17 +27,13 @@ void Slide::calibrate() {
 	m_motor.move(127);
     pros::delay(125);
 	m_motor.move(0);
-	std::cout << "done #3 \n";
-	std::cout << m_motor.get_actual_velocity() << "\n";
 	waitUntilStop(m_motor);
-	std::cout << "done #4 \n";
 	m_motor.move(-127);
     waitUntilMove(m_motor);
     waitUntilStop(m_motor);
 	m_motor.move(0);
 	pros::delay(250);
     m_motor.tare_position();
-	std::cout << "done first cali \n";
 	m_motor.move(127);
 	waitUntilMove(m_motor);
 	waitUntilStop(m_motor);
@@ -50,8 +42,15 @@ void Slide::calibrate() {
 	m_limit = m_motor.get_position(); 
 }
 
-void Slide::print() {
-	std::cout << "bruh";
+void Slide::fullMove(int speed) { //sign of speed will determine extension or contraction
+	m_motor.move(speed);
+	waitUntilStop(m_motor);
+	m_motor.move(0);
+}
+
+void Slide::move(int speed) { //sign of speed also determines extension or contraction
+
+	m_motor.move(speed);
 }
 
 Slide::Slide(std::uint8_t port, bool reverse) : m_motor{port, reverse}, m_limit{ 0 }

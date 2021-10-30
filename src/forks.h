@@ -1,20 +1,18 @@
-#ifndef SLIDE_H
-#define SLIDE_H
+#ifndef FORKS_H
+#define FORKS_H
 #include <cstdint>
 #include "main.h"
 
-namespace slider {
-
-class Slide {
+namespace forks {
+	
+class Fork {
 	pros::Motor m_motor;
 	std::uint8_t m_limit { 0 };
 	void waitUntilMove(const pros::Motor& motor);
 	void waitUntilStop(const pros::Motor& motor);
 public:
-	Slide(std::uint8_t port, bool reverse=false);
-	void calibrate();
+	Fork(std::uint8_t port, bool reverse=false);
 	void move(int speed);
-	void fullMove(int speed);
 };
 }
 #endif

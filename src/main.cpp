@@ -67,7 +67,7 @@ void competition_initialize() {}
 //
 //}
 
-slide1::Slide slide (10, true);
+slider::Slide slide (10, true);
 
 void autonomous() {
 }
@@ -85,18 +85,6 @@ void autonomous() {
  * operator control task will be stopped. Re-enabling the robot will restart the
   provide “read-only” access to data. Therefore, the best practice is that they should retu* task, not resume it from where it left off.
  */
-struct inputValue {
-    int left{ };
-    int right{ };
-};
-
-void graph() {
-    inputValue list[255]{ };
-	for (int number{ 0 }; number < 255; ++number) {
-		list[number].left = number - 127;
-		std::cout << list[number].left << "," << driving::cvals(list[number].left) << "\n";
-	}
-}
 
 void opcontrol() {
 	// Construct the controller
@@ -115,33 +103,57 @@ void opcontrol() {
 	//slide.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
-//	graph();
-	std::cout << frontR.is_stopped() << "\n";
-	std::cout << frontR.get_actual_velocity() << "\n";
-	std::cout << "before routine \n";
-	slide.print();
-	slide.calibrate();
-	std::cout << "after routine \n";
+	int translateY { 0 };
+	int translateX { 0 };
+	int rotation { 0 };
+	int frontLWheel { 0 };
+	int backLWheel { 0 };
+	int frontRWheel { 0 };
+	int backRWheel { 0 };
+
 	while (true) {
 		// Get stick analog values, correct them, and set variables
-		int leftStick { 0 };
-		leftStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)));
-		int rightStick { 0 };
-		rightStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)));
+//		leftStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)));
+//		rightStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)));
+		
+		translateY = driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y));
+		translateX = driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X));
+		rotation = -driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X));
+		
+		frontLWheel = translateY + translateX - rotation;
+		backLWheel = translateY - translateX - rotation;
+		frontRWheel = translateY - translateX + rotation;
+		backRWheel = translateY + translateX + rotation;
+
+		frontL.move(frontLWheel);
+		backL.move(backLWheel);
+		frontR.move(frontRWheel);
+		backR.move(backRWheel);
+
 		// Calculate the left and right speeds
-		int leftPwr { 0 };
-	    leftPwr = leftStick + rightStick;
-		int rightPwr { 0 };
-		rightPwr = leftStick - rightStick;
+//		int leftPwr { 0 };
+//	    leftPwr = leftStick + rightStick;
+//		int rightPwr { 0 };
+//		rightPwr = leftStick - rightStick;
 	    // Move the wheels using the calculated values
 //		frontL.move(leftPwr);
 //		backL.move(leftPwr);
 //		frontR.move(rightPwr);
 //	    backR.move(rightPwr);
+		
+		lift.move(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y));
+		
+//		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+//			slide.move(127);
+//		}
+//		else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+//			slide.move(-127);
+//		}
+//		else {
+//			slide.move(0);
+//		}
+		
 
-//		std::cout << master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) << "," << master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-//		std::cout << "," << driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) << "," << driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y));
-//		std::cout << "," << driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))) << "," << driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))) << "\n";
 		pros::delay(4);
 	}
 }
