@@ -1,7 +1,7 @@
 #include "main.h"
 #include "drive.h"
 #include "slide.h"
-
+#include <cmath>
 
 /**
  * A callback function for LLEMU's center button.
@@ -19,7 +19,7 @@ void on_center_button() {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-
+		
 }
 
 /**
@@ -111,14 +111,24 @@ void opcontrol() {
 	int frontRWheel { 0 };
 	int backRWheel { 0 };
 
+
+	constexpr auto driveLut { driving::genDrivingLut() };
+
+//	for (int i = 0; i < 255; i++){
+//		std::cout << driveLut[i] <<"\n";
+//	}
+
+	
+	
+
 	while (true) {
 		// Get stick analog values, correct them, and set variables
 //		leftStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)));
 //		rightStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)));
 		
-		translateY = driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y));
-		translateX = driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X));
-		rotation = -driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X));
+		translateY = driveLut[driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))];
+		translateX = driveLut[driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))];
+		rotation = driveLut[-driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X))];
 		
 		frontLWheel = translateY + translateX - rotation;
 		backLWheel = translateY - translateX - rotation;
@@ -152,7 +162,6 @@ void opcontrol() {
 //		else {
 //			slide.move(0);
 //		}
-		
 
 		pros::delay(4);
 	}
