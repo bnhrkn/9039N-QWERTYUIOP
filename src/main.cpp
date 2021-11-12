@@ -114,11 +114,10 @@ void opcontrol() {
 
 	constexpr auto driveLut { driving::genDrivingLut() };
 
-//	for (int i = 0; i < 255; i++){
-//		std::cout << driveLut[i] <<"\n";
-//	}
+	for (int i = 0; i < 255; i++){
+		std::cout << i << ", " << driveLut[i] <<"\n";
+	}
 
-	
 	
 
 	while (true) {
@@ -126,9 +125,9 @@ void opcontrol() {
 //		leftStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)));
 //		rightStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)));
 		
-		translateY = driveLut[driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))];
-		translateX = driveLut[driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))];
-		rotation = driveLut[-driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X))];
+		translateY = driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))];
+		translateX = driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))];
+		rotation = driveLut[127 - driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X))];
 		
 		frontLWheel = translateY + translateX - rotation;
 		backLWheel = translateY - translateX - rotation;
@@ -139,7 +138,10 @@ void opcontrol() {
 		backL.move(backLWheel);
 		frontR.move(frontRWheel);
 		backR.move(backRWheel);
+		
+//		std::cout << translateY << ", " << translateX << ", " << rotation << "\n";
 
+//		std::cout << master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) << ", " << driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) << ", " << driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))] << "\n";
 		// Calculate the left and right speeds
 //		int leftPwr { 0 };
 //	    leftPwr = leftStick + rightStick;
