@@ -67,7 +67,7 @@ void competition_initialize() {}
 //
 //}
 
-slider::Slide slide (10, true);
+slider::Slide slide (6, true);
 
 void autonomous() {
 }
@@ -98,7 +98,7 @@ void opcontrol() {
     // Construct the slide motor
     //pros::Motor slide (5);
 	// Construct the lift motor
-	pros::Motor lift (6);
+	pros::Motor lift (5);
     // Set brake mode for select motors
 	//slide.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
@@ -155,15 +155,15 @@ void opcontrol() {
 		
 		lift.move(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y));
 		
-//		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-//			slide.move(127);
-//		}
-//		else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-//			slide.move(-127);
-//		}
-//		else {
-//			slide.move(0);
-//		}
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+			slide.move(127);
+		}
+		else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+			slide.move(-127);
+		}
+		else {
+			slide.move(0);
+		}
 
 		pros::delay(4);
 	}
