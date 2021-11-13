@@ -114,9 +114,9 @@ void opcontrol() {
 
 	constexpr auto driveLut { driving::genDrivingLut() };
 
-	for (int i = 0; i < 255; i++){
-		std::cout << i << ", " << driveLut[i] <<"\n";
-	}
+//	for (int i = 0; i < 255; i++){
+//		std::cout << i << ", " << driveLut[i] <<"\n";
+//	}
 
 	
 
@@ -134,10 +134,10 @@ void opcontrol() {
 		frontRWheel = translateY - translateX + rotation;
 		backRWheel = translateY + translateX + rotation;
 
-		frontL.move(frontLWheel);
-		backL.move(backLWheel);
-		frontR.move(frontRWheel);
-		backR.move(backRWheel);
+		frontL.move_velocity(1.5625 * frontLWheel);
+		backL.move_velocity(1.5625 * backLWheel);
+		frontR.move_velocity(1.5625 * frontRWheel);
+		backR.move_velocity(1.5625 * backRWheel);
 		
 //		std::cout << translateY << ", " << translateX << ", " << rotation << "\n";
 
@@ -153,9 +153,8 @@ void opcontrol() {
 //		frontR.move(rightPwr);
 //	    backR.move(rightPwr);
 		
-		lift.move(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y));
-		
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+		std::cout << slide.get_position() << "\n";
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && slide.get_position() < 450) {
 			slide.move(127);
 		}
 		else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {

@@ -15,6 +15,7 @@ public:
 	void calibrate();
 	void move(int speed);
 	void fullMove(int speed);
+	int get_position();
 };
 }
 #endif

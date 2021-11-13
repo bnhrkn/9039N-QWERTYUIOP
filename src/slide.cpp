@@ -23,6 +23,10 @@ void Slide::waitUntilStop(const pros::Motor& motor) {
 	}
 }
 
+int Slide::get_position() {
+	return m_motor.get_position();
+}
+
 void Slide::calibrate() {
 	m_motor.move(127);
     pros::delay(125);
@@ -55,7 +59,7 @@ void Slide::move(int speed) { //sign of speed also determines extension or contr
 
 Slide::Slide(std::uint8_t port, bool reverse) : m_motor{port, reverse}, m_limit{ 0 }
     {
-		m_motor.set_encoder_units(pros::E_MOTOR_ENCODER_COUNTS);
+		m_motor.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
 	}
 
 }

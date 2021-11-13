@@ -2,9 +2,22 @@
 #define DRIVE_H
 #include <cmath>
 #include <array>
+#include <algorithm>
 
 namespace driving {
-	int cvals(int analog);
+//	template <typename val>
+//	int cvals(val analog);
+	template <typename val>
+    int cvals(val analog) { //control values function, returns control value for inputs
+//          if (std::abs(analog) < 110) {
+//                  return std::round(analog * 1.154545);
+//          }
+//          else {
+//                  return std::copysign(127, analog);
+//          }
+
+            return std::round(std::clamp((analog * 1.154545), -127.0, 127.0));
+    }
 //	constexpr int expDrive(int input);
         constexpr int expDrive(int input) {
                 constexpr double aCoe { 0.015749 };
