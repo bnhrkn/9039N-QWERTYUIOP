@@ -103,6 +103,8 @@ void opcontrol() {
 	//slide.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
+	pros::Imu inertial(7);
+
 	int translateY { 0 };
 	int translateX { 0 };
 	int rotation { 0 };
@@ -112,12 +114,12 @@ void opcontrol() {
 	int backRWheel { 0 };
 
 
-	constexpr auto driveLut { driving::genDrivingLut() };
+	auto driveLut { driving::genDrivingLut() };
 
-//	for (int i = 0; i < 255; i++){
-//		std::cout << i << ", " << driveLut[i] <<"\n";
-//	}
-
+	for (int i = -127; i <= 127; i++){
+		std::cout << i << ", " << driveLut[i] <<"\n";
+	}
+	int roll {0};
 	
 
 	while (true) {
@@ -125,20 +127,26 @@ void opcontrol() {
 //		leftStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)));
 //		rightStick = driving::expDrive(driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)));
 		
-		translateY = driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))];
-		translateX = driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))];
-		rotation = driveLut[127 - driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X))];
+//		translateY = driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))];
+//		translateX = driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X))];
+//		rotation = driveLut[127 - driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X))];
 		
+		translateY = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)];
+		translateX = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)];
+		rotation = driveLut[-master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X)];
+
 		frontLWheel = translateY + translateX - rotation;
 		backLWheel = translateY - translateX - rotation;
 		frontRWheel = translateY - translateX + rotation;
 		backRWheel = translateY + translateX + rotation;
-
+		
 		frontL.move_velocity(1.5625 * frontLWheel);
 		backL.move_velocity(1.5625 * backLWheel);
 		frontR.move_velocity(1.5625 * frontRWheel);
 		backR.move_velocity(1.5625 * backRWheel);
 		
+		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
+
 //		std::cout << translateY << ", " << translateX << ", " << rotation << "\n";
 
 //		std::cout << master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) << ", " << driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) << ", " << driveLut[127 + driving::cvals(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y))] << "\n";
@@ -153,16 +161,42 @@ void opcontrol() {
 //		frontR.move(rightPwr);
 //	    backR.move(rightPwr);
 		
-		std::cout << slide.get_position() << "\n";
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && slide.get_position() < 450) {
-			slide.move(127);
+//		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && slide.get_position() < 450) {
+//			slide.move(127);
+//		}
+//		else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+//			slide.move(-127);
+//		}
+//		else {
+//			slide.move(0);
+//		}
+
+		if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
+			slide.fullMove(127);
 		}
-		else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2) && !master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-			slide.move(-127);
+		
+		std::cout << inertial.get_roll() << "\n";
+
+		constexpr int tiltThreshold { 10 };
+		static bool tilted { false };
+		roll = inertial.get_roll();
+		if (!tilted && roll >= 10 && roll < 1000) {
+			std::cout << "met condition 1\n";
+			frontL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+			backL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+			frontR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+			backR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+			tilted = !tilted;
 		}
-		else {
-			slide.move(0);
+		else if (tilted && roll < 10) {
+			std::cout << "met condition 2\n";
+                        frontL.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+                        backL.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+                        frontR.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+                        backR.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+			tilted = !tilted;
 		}
+
 
 		pros::delay(4);
 	}

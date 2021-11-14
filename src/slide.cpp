@@ -47,9 +47,16 @@ void Slide::calibrate() {
 }
 
 void Slide::fullMove(int speed) { //sign of speed will determine extension or contraction
-	m_motor.move(speed);
-	waitUntilStop(m_motor);
-	m_motor.move(0);
+	static bool extended { false };
+	constexpr int outerStop { 450 };
+	if (extended) {
+		m_motor.move_absolute(0, speed);
+		extended = !extended;
+	}
+	else {
+		m_motor.move_absolute(outerStop, speed);
+		extended = !extended;
+	}
 }
 
 void Slide::move(int speed) { //sign of speed also determines extension or contraction

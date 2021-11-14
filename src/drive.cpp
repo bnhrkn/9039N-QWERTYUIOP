@@ -5,6 +5,13 @@
 
 namespace driving
 {
+	std::unordered_map<int, int> genDrivingLut() {
+              std::unordered_map<int, int> umap;
+              for(int i = -127; i <= 127; i++) {
+                        umap[i] = expDrive(cvals(i));
+              }
+              return umap;
+      }
 //	template <typename val>
 //	int cvals(val analog) { //control values function, returns control value for inputs
 //	        if (std::abs(analog) < 110) {
