@@ -1,6 +1,7 @@
 #include "main.h"
 #include "drive.h"
 #include "slide.h"
+#include <cmath>
 
 // A callback function for LLEMU's center button.
 void on_center_button() {
@@ -41,6 +42,7 @@ void competition_initialize() {}
  */
 
 slider::Slide slide (6, true);
+driving::Drive drivetrain;
 
 void autonomous() {
 }
@@ -58,16 +60,20 @@ void autonomous() {
  * operator control task will be stopped. Re-enabling the robot will restart the
   provide “read-only” access to data. Therefore, the best practice is that they should retu* task, not resume it from where it left off.
  */
+void shake (driving::Drive& drivetrain) {
+	
+}
+
 
 void opcontrol() {
 	// Construct the controller
     	pros::Controller master (pros::E_CONTROLLER_MASTER);
 
 	// Construct each of the 4 chassis movement motors
-	pros::Motor frontL (1);
-    	pros::Motor frontR (3, true);
-    	pros::Motor backL (2);
-    	pros::Motor backR (4, true);
+	//pros::Motor frontL (1);
+    	//pros::Motor frontR (3, true);
+    	//pros::Motor backL (2);
+    	//pros::Motor backR (4, true);
 	// Construct the lift motor
 	pros::Motor lift (5);
     	// Set brake mode for select motors
@@ -89,24 +95,39 @@ void opcontrol() {
 //	for (int i = -127; i <= 127; i++){
 //		std::cout << i << ", " << driveLut[i] <<"\n";
 //	}
-	int roll {0};
+//	int roll {0};
 	
+//	pros::Task shake{[&] {
+//		while(true) {
+//			if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
+//				drivetrain.shake(100, 127, 3);
+//				std::cout << "Shaking!!!\n";
+//			}
+//			pros::delay(20);
+//		}
+//	}};
 
 	while (true) {
 		//Driving
-		translateY = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)];
-		translateX = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)];
-		rotation = driveLut[-master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X)];
-
-		frontLWheel = translateY + translateX - rotation;
-		backLWheel = translateY - translateX - rotation;
-		frontRWheel = translateY - translateX + rotation;
-		backRWheel = translateY + translateX + rotation;
+		drivetrain.move(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X),
 		
-		frontL.move_velocity(1.5625 * frontLWheel);
-		backL.move_velocity(1.5625 * backLWheel);
-		frontR.move_velocity(1.5625 * frontRWheel);
-		backR.move_velocity(1.5625 * backRWheel);
+					master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y),
+					-master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X));
+		drivetrain.tiltLock(inertial, 10);
+//
+//		translateY = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)];
+//		translateX = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)];
+//		rotation = driveLut[-master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X)];
+//
+//		frontLWheel = translateY + translateX - rotation;
+//		backLWheel = translateY - translateX - rotation;
+//		frontRWheel = translateY - translateX + rotation;
+//		backRWheel = translateY + translateX + rotation;
+//		
+//		frontL.move_velocity(1.5625 * frontLWheel);
+//		backL.move_velocity(1.5625 * backLWheel);
+//		frontR.move_velocity(1.5625 * frontRWheel);
+//		backR.move_velocity(1.5625 * backRWheel);
 		
 		//Forks
 		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
@@ -115,28 +136,11 @@ void opcontrol() {
 		if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
 			slide.fullMove(127);
 		}
-		
-		//Tilt
-		constexpr int tiltThreshold { 10 };
-		static bool tilted { false };
-		roll = inertial.get_roll();
-		if (!tilted && roll >= 10 && roll < 1000) {
-			std::cout << "met condition 1\n";
-			frontL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-			backL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-			frontR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-			backR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-			tilted = !tilted;
-		}
-		else if (tilted && roll < 10) {
-			std::cout << "met condition 2\n";
-                        frontL.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-                        backL.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-                        frontR.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-                        backR.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-			tilted = !tilted;
-		}
-
+	
+//		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
+//                                drivetrain.shake(100, 127, 3);
+//                                std::cout << "Shaking!!!\n";
+//                }
 
 		pros::delay(4);
 	}
