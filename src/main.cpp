@@ -3,6 +3,15 @@
 #include "slide.h"
 #include <cmath>
 
+
+// Construct the lift motor
+pros::Motor lift (5);
+// Construct the drivetrain
+driving::Drive drivetrain;
+// Construct the slide
+slider::Slide slide (6, true);
+
+
 // A callback function for LLEMU's center button.
 void on_center_button() {
 }
@@ -16,7 +25,11 @@ void initialize() {
 // Runs while the robot is in the disabled state of Field Management System or
 // the VEX Competition Switch, following either autonomous or opcontrol. When
 // the robot is enabled, this task will exit.
-void disabled() {}
+void disabled() {
+	lift.move(0);
+	slide.move(0);
+	drivetrain.move(0, 0, 0);
+}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -41,8 +54,6 @@ void competition_initialize() {}
  * from where it left off.
  */
 
-slider::Slide slide (6, true);
-driving::Drive drivetrain;
 
 void autonomous() {
 }
@@ -60,9 +71,6 @@ void autonomous() {
  * operator control task will be stopped. Re-enabling the robot will restart the
   provide “read-only” access to data. Therefore, the best practice is that they should retu* task, not resume it from where it left off.
  */
-void shake (driving::Drive& drivetrain) {
-	
-}
 
 
 void opcontrol() {
@@ -74,8 +82,6 @@ void opcontrol() {
     	//pros::Motor frontR (3, true);
     	//pros::Motor backL (2);
     	//pros::Motor backR (4, true);
-	// Construct the lift motor
-	pros::Motor lift (5);
     	// Set brake mode for select motors
 	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
