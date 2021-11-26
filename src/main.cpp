@@ -3,13 +3,51 @@
 #include "slide.h"
 #include <cmath>
 
-
+using namespace okapi::literals;
 // Construct the lift motor
 pros::Motor lift (5);
 // Construct the drivetrain
-driving::Drive drivetrain;
+std::shared_ptr<okapi::OdomChassisController> drive = 
+	okapi::ChassisControllerBuilder()
+		.withMotors(
+				1, 
+				-3, 
+				-4, 
+				2
+			   )
+		.withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15.25_in}, okapi::imev5GreenTPR})
+//		.withGains(
+//			{0.00075, 0.0000, 0.0000}, //Distance controller gains
+//			{0.000, 0, 0.000}, // Turn controller gain
+//			{0.000, 0, 0.000} // Angle controller gains
+//			)
+//		.withDerivativeFilter(
+//			std::make_unique<AverageFilter<3>>(), // Distance controller filter
+//			std::make_unique<AverageFilter<3>>(), // Turn controller filter
+//			std::make_unique<AverageFilter<3>>()  // Angle controller filter
+//			)
+		.withOdometry()
+		.buildOdometry();
+
+
+std::shared_ptr<okapi::AsyncMotionProfileController> profiler = 
+	okapi::AsyncMotionProfileControllerBuilder()
+		.withLimits({
+			1.0, // Maximum linear velocity of the Chassis in m/s
+			2.0, // Maximum linear acceleration of the Chassis in m/s/s
+			10.0 // Maximum linear jerk of the Chassis in m/s/s/s
+			})
+		.withOutput(drive)
+		.buildMotionProfileController();
+
+
+auto XDriveTrain { std::dynamic_pointer_cast<okapi::XDriveModel>(drive->getModel()) };
 // Construct the slide
 slider::Slide slide (6, true);
+
+// Construct the controller
+okapi::Controller controller;
+okapi::ControllerButton slideButton(okapi::ControllerDigital::A);
 
 
 // A callback function for LLEMU's center button.
@@ -19,7 +57,11 @@ void on_center_button() {
 // Runs initialization code. This occurs as soon as the program is started.
 // All other competition modes are blocked by initialize
 void initialize() {
-		
+	profiler->generatePath({
+			{0_ft, 0_ft, 0_deg},
+			{1_ft, 1_ft, 0_deg}},
+			"A"
+			);
 }
 
 // Runs while the robot is in the disabled state of Field Management System or
@@ -28,7 +70,7 @@ void initialize() {
 void disabled() {
 	lift.move(0);
 	slide.move(0);
-	drivetrain.move(0, 0, 0);
+	XDriveTrain->stop();
 }
 
 /**
@@ -56,7 +98,11 @@ void competition_initialize() {}
 
 
 void autonomous() {
+	profiler->setTarget("A");
+	profiler->waitUntilSettled();
 }
+
+
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -74,14 +120,19 @@ void autonomous() {
 
 
 void opcontrol() {
-	// Construct the controller
-    	pros::Controller master (pros::E_CONTROLLER_MASTER);
+	constexpr double ialpha { 0.2 };
+	constexpr double ibeta {0.05 };
 
-	// Construct each of the 4 chassis movement motors
-	//pros::Motor frontL (1);
-    	//pros::Motor frontR (3, true);
-    	//pros::Motor backL (2);
-    	//pros::Motor backR (4, true);
+//	okapi::EmaFilter leftXFilter(ialpha, ibeta);
+//	okapi::EmaFilter leftYFilter(ialpha, ibeta);
+//	okapi::EmaFilter rightXFilter(ialpha, ibeta);
+	okapi::AverageFilter<32> leftXFilter;
+	okapi::AverageFilter<32> leftYFilter;
+	okapi::AverageFilter<32> rightXFilter;
+
+	//Rumble the controller as a warning that operator control is starting
+	controller.rumble("-");
+
     	// Set brake mode for select motors
 	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
@@ -96,7 +147,7 @@ void opcontrol() {
 	int backRWheel { 0 };
 
 
-	auto driveLut { driving::genDrivingLut() };
+//	auto driveLut { driving::genDrivingLut() };
 
 //	for (int i = -127; i <= 127; i++){
 //		std::cout << i << ", " << driveLut[i] <<"\n";
@@ -115,12 +166,18 @@ void opcontrol() {
 
 	while (true) {
 		//Driving
-		drivetrain.move(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X),
-		
-					master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y),
-					-master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X));
-		drivetrain.tiltLock(inertial, 10);
-//
+		double drivingDeadzone {0.05};
+		double filteredRX {rightXFilter.filter(controller.getAnalog(okapi::ControllerAnalog::rightX))};
+		double filteredLY {leftYFilter.filter(controller.getAnalog(okapi::ControllerAnalog::leftY))};
+		double filteredLX {leftXFilter.filter(controller.getAnalog(okapi::ControllerAnalog::leftX))};
+		XDriveTrain->xArcade( filteredLX, filteredLY, filteredRX, drivingDeadzone);
+//		double drivingDeadzone {0.05};
+//		XDriveTrain->xArcade(controller.getAnalog(okapi::ControllerAnalog::leftX),
+//						controller.getAnalog(okapi::ControllerAnalog::leftY),
+//						controller.getAnalog(okapi::ControllerAnalog::rightX),
+//						drivingDeadzone);
+
+		//
 //		translateY = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)];
 //		translateX = driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)];
 //		rotation = driveLut[-master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X)];
@@ -136,10 +193,10 @@ void opcontrol() {
 //		backR.move_velocity(1.5625 * backRWheel);
 		
 		//Forks
-		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
+//		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
 		
 		//Slide
-		if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1)) {
+		if (slideButton.changedToPressed()) {
 			slide.fullMove(127);
 		}
 	
@@ -148,6 +205,6 @@ void opcontrol() {
 //                                std::cout << "Shaking!!!\n";
 //                }
 
-		pros::delay(4);
+		pros::delay(10);
 	}
 }
