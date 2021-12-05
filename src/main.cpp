@@ -1,11 +1,14 @@
 #include "main.h"
-#include "drive.h"
+//#include "drive.h"
 #include "slide.h"
 #include <cmath>
+#include <chrono>
 
 using namespace okapi::literals;
+pros::Imu inertial(7);
 // Construct the lift motor
-pros::Motor lift (5);
+okapi::Motor lift(5, false, okapi::AbstractMotor::gearset::red, okapi::AbstractMotor::encoderUnits::degrees);
+
 // Construct the drivetrain
 std::shared_ptr<okapi::OdomChassisController> drive = 
 	okapi::ChassisControllerBuilder()
@@ -42,6 +45,7 @@ std::shared_ptr<okapi::AsyncMotionProfileController> profiler =
 
 
 auto XDriveTrain { std::dynamic_pointer_cast<okapi::XDriveModel>(drive->getModel()) };
+auto topLeft { XDriveTrain->getTopLeftMotor() };
 // Construct the slide
 slider::Slide slide (6, true);
 
@@ -68,7 +72,7 @@ void initialize() {
 // the VEX Competition Switch, following either autonomous or opcontrol. When
 // the robot is enabled, this task will exit.
 void disabled() {
-	lift.move(0);
+	lift.moveVoltage(0);
 	slide.move(0);
 	XDriveTrain->stop();
 }
@@ -98,8 +102,16 @@ void competition_initialize() {}
 
 
 void autonomous() {
-	profiler->setTarget("A");
-	profiler->waitUntilSettled();
+//	profiler->setTarget("A");
+//	profiler->waitUntilSettled();
+	while(true) {
+		auto start = pros::micros();
+		auto accel = inertial.get_accel();
+		auto stop = pros::micros();
+//		std::cout << stop - start << std::endl;
+		std::cout << accel.x << ", " << accel.y << ", " << accel.z << std::endl;
+		pros::delay(1);
+	}
 }
 
 
@@ -120,8 +132,8 @@ void autonomous() {
 
 
 void opcontrol() {
-	constexpr double ialpha { 0.2 };
-	constexpr double ibeta {0.05 };
+//	constexpr double ialpha { 0.2 };
+//	constexpr double ibeta {0.05 };
 
 //	okapi::EmaFilter leftXFilter(ialpha, ibeta);
 //	okapi::EmaFilter leftYFilter(ialpha, ibeta);
@@ -132,11 +144,8 @@ void opcontrol() {
 
 	//Rumble the controller as a warning that operator control is starting
 	controller.rumble("-");
+	
 
-    	// Set brake mode for select motors
-	lift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-
-	pros::Imu inertial(7);
 
 	int translateY { 0 };
 	int translateX { 0 };
@@ -163,8 +172,8 @@ void opcontrol() {
 //			pros::delay(20);
 //		}
 //	}};
-
 	while (true) {
+//		auto start = pros::micros();
 		//Driving
 		double drivingDeadzone {0.05};
 		double filteredRX {rightXFilter.filter(controller.getAnalog(okapi::ControllerAnalog::rightX))};
@@ -191,20 +200,38 @@ void opcontrol() {
 //		backL.move_velocity(1.5625 * backLWheel);
 //		frontR.move_velocity(1.5625 * frontRWheel);
 //		backR.move_velocity(1.5625 * backRWheel);
-		
 		//Forks
 //		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
-		
+		lift.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY) * 12000);		
 		//Slide
 		if (slideButton.changedToPressed()) {
 			slide.fullMove(127);
 		}
-	
+		//Tilt Lock	
+		static bool tilted { false };
+		int roll = std::abs(inertial.get_roll());
+		if (!tilted && roll >= 10 && roll < 1000) {
+			XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+			tilted = !tilted;
+		}
+		else if (tilted && roll < 10) {
+			XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+			tilted = !tilted;
+		}
+		switch (topLeft->getBrakeMode()) {
+		case okapi::AbstractMotor::brakeMode::hold :
+			std::cout << "hold mode\n";
+			break;
+		case okapi::AbstractMotor::brakeMode::coast :
+			std::cout << "coast mode\n";
+			break;
+		}
 //		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
 //                                drivetrain.shake(100, 127, 3);
 //                                std::cout << "Shaking!!!\n";
 //                }
-
+//		auto stop = pros::micros();
+//		std::cout << stop - start  << std::endl;
 		pros::delay(10);
 	}
 }
