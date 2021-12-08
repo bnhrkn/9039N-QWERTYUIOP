@@ -52,7 +52,7 @@ slider::Slide slide (6, true);
 // Construct the controller
 okapi::Controller controller;
 okapi::ControllerButton slideButton(okapi::ControllerDigital::A);
-
+okapi::ControllerButton holdButton(okapi::ControllerDigital::B);
 
 // A callback function for LLEMU's center button.
 void on_center_button() {
@@ -218,6 +218,17 @@ void opcontrol() {
 			XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 			tilted = !tilted;
 		}
+//		static bool toggle { false };
+//		if (holdButton.changedToPressed()) {
+//			toggle = !toggle;
+//			if (toggle) {
+//				XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+//			}
+//			else {
+//				XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+//			}
+//		}
+
 		switch (topLeft->getBrakeMode()) {
 		case okapi::AbstractMotor::brakeMode::hold :
 			std::cout << "hold mode\n";
