@@ -1,0 +1,16 @@
+#include "config.h"
+#include <toml++/toml.h>
+#include <string_view>
+
+auto parseConfig(std::string_view filename) {
+	try {
+		
+	}
+}
+
+
+namespace config {
+	extern const toml::table conf { toml::parse_file(); }
+}
+
+
