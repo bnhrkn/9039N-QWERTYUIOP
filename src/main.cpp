@@ -1,13 +1,22 @@
 #include "main.h"
 //#include "drive.h"
-#include "slide.h"
+//#include "slide.h"
 #include <cmath>
 #include <chrono>
 
 using namespace okapi::literals;
 pros::Imu inertial(7);
+// Construct the rotation sensor
+auto rotationSensor { std::make_shared<okapi::RotationSensor>(8, false) };
+auto baseRotarySensor { std::dynamic_pointer_cast<okapi::RotarySensor>(rotationSensor) };
 // Construct the lift motor
-okapi::Motor lift(5, false, okapi::AbstractMotor::gearset::red, okapi::AbstractMotor::encoderUnits::degrees);
+//okapi::Motor lift(5, false, okapi::AbstractMotor::gearset::red, okapi::AbstractMotor::encoderUnits::degrees);
+std::shared_ptr<okapi::AsyncPositionController<double, double>> liftControl = 
+	okapi::AsyncPosControllerBuilder().withMotor(5)
+	.withSensor(baseRotarySensor)
+	.withGearset(okapi::AbstractMotor::GearsetRatioPair(okapi::AbstractMotor::gearset::red, 8))
+	.build();
+
 
 // Construct the drivetrain
 std::shared_ptr<okapi::OdomChassisController> drive = 
@@ -53,6 +62,11 @@ slider::Slide slide (6, true);
 okapi::Controller controller;
 okapi::ControllerButton slideButton(okapi::ControllerDigital::A);
 okapi::ControllerButton holdButton(okapi::ControllerDigital::B);
+okapi::ControllerButton forksLow(okapi::ControllerDigital::R2);
+okapi::ControllerButton forksCarry(okapi::ControllerDigital::R1);
+okapi::ControllerButton forksLoad(okapi::ControllerDigital::L2);
+okapi::ControllerButton eStop(okapi::ControllerDigital::X);
+// okapi::ControllerButton forksStore();
 
 // A callback function for LLEMU's center button.
 void on_center_button() {
@@ -72,7 +86,7 @@ void initialize() {
 // the VEX Competition Switch, following either autonomous or opcontrol. When
 // the robot is enabled, this task will exit.
 void disabled() {
-	lift.moveVoltage(0);
+	liftControl->controllerSet(0);
 	slide.move(0);
 	XDriveTrain->stop();
 }
@@ -202,7 +216,15 @@ void opcontrol() {
 //		backR.move_velocity(1.5625 * backRWheel);
 		//Forks
 //		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
-		lift.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY) * 12000);		
+		liftControl->controllerSet(controller.getAnalog(okapi::ControllerAnalog::rightY)	);		
+		
+		if (forksLow.changedToPressed()) {
+			liftControl->setTarget(85.5);
+			std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << "\n";
+		}
+
+		 
+
 		//Slide
 		if (slideButton.changedToPressed()) {
 			slide.fullMove(127);
@@ -243,6 +265,9 @@ void opcontrol() {
 //                }
 //		auto stop = pros::micros();
 //		std::cout << stop - start  << std::endl;
+		if (eStop.isPressed()) {
+			liftControl->controllerSet(0);
+		};
 		pros::delay(10);
 	}
 }
