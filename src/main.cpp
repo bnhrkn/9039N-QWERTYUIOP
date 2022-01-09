@@ -3,18 +3,30 @@
 //#include "slide.h"
 #include <cmath>
 #include <chrono>
+#include <string>
 
 using namespace okapi::literals;
-pros::Imu inertial(7);
+
+
+
+pros::Imu inertial(4);
 // Construct the rotation sensor
-auto rotationSensor { std::make_shared<okapi::RotationSensor>(8, false) };
+auto rotationSensor { std::make_shared<okapi::RotationSensor>(1, false) };
 auto baseRotarySensor { std::dynamic_pointer_cast<okapi::RotarySensor>(rotationSensor) };
-// Construct the lift motor
+// Construct the lift motors
 //okapi::Motor lift(5, false, okapi::AbstractMotor::gearset::red, okapi::AbstractMotor::encoderUnits::degrees);
+//auto liftGroup { std::make_shared<okapi::MotorGroup>(-2, 9)};
+okapi::MotorGroup liftGroup({-3, 9});
+//liftGroup.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+//liftGroup.moveRelative(50);
+double liftkP = 0.001;
+double liftkI = 0.0001;
+double liftkD = 0.0001;
 std::shared_ptr<okapi::AsyncPositionController<double, double>> liftControl = 
-	okapi::AsyncPosControllerBuilder().withMotor(5)
+	okapi::AsyncPosControllerBuilder().withMotor(liftGroup)
 	.withSensor(baseRotarySensor)
-	.withGearset(okapi::AbstractMotor::GearsetRatioPair(okapi::AbstractMotor::gearset::red, 8))
+	.withGains({liftkP, liftkI, liftkD})
+	.withGearset(okapi::AbstractMotor::GearsetRatioPair(okapi::AbstractMotor::gearset::red, 1))
 	.build();
 
 
@@ -22,10 +34,10 @@ std::shared_ptr<okapi::AsyncPositionController<double, double>> liftControl =
 std::shared_ptr<okapi::OdomChassisController> drive = 
 	okapi::ChassisControllerBuilder()
 		.withMotors(
-				1, 
-				-3, 
-				-4, 
-				2
+				2, 
+				-10, 
+				-11, 
+				20
 			   )
 		.withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15.25_in}, okapi::imev5GreenTPR})
 //		.withGains(
@@ -56,7 +68,7 @@ std::shared_ptr<okapi::AsyncMotionProfileController> profiler =
 auto XDriveTrain { std::dynamic_pointer_cast<okapi::XDriveModel>(drive->getModel()) };
 auto topLeft { XDriveTrain->getTopLeftMotor() };
 // Construct the slide
-slider::Slide slide (6, true);
+//slider::Slide slide (6, true);
 
 // Construct the controller
 okapi::Controller controller;
@@ -66,6 +78,11 @@ okapi::ControllerButton forksLow(okapi::ControllerDigital::R2);
 okapi::ControllerButton forksCarry(okapi::ControllerDigital::R1);
 okapi::ControllerButton forksLoad(okapi::ControllerDigital::L2);
 okapi::ControllerButton eStop(okapi::ControllerDigital::X);
+okapi::ControllerButton buttonY(okapi::ControllerDigital::Y);
+okapi::ControllerButton buttonB(okapi::ControllerDigital::B);
+okapi::ControllerButton buttonA(okapi::ControllerDigital::A);
+okapi::ControllerButton buttonUp(okapi::ControllerDigital::up);
+okapi::ControllerButton buttonDown(okapi::ControllerDigital::down);
 // okapi::ControllerButton forksStore();
 
 // A callback function for LLEMU's center button.
@@ -75,11 +92,17 @@ void on_center_button() {
 // Runs initialization code. This occurs as soon as the program is started.
 // All other competition modes are blocked by initialize
 void initialize() {
-	profiler->generatePath({
-			{0_ft, 0_ft, 0_deg},
-			{1_ft, 1_ft, 0_deg}},
-			"A"
-			);
+	okapi::Logger::setDefaultLogger (
+		std::make_shared<okapi::Logger> (
+			okapi::TimeUtilFactory::createDefault().getTimer(), // It needs a Timer
+			"/ser/sout", // Output to the PROS terminal
+			okapi::Logger::LogLevel::warn // Show errors and warnings
+		)
+	);
+	liftGroup.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	
+	
+
 }
 
 // Runs while the robot is in the disabled state of Field Management System or
@@ -87,7 +110,7 @@ void initialize() {
 // the robot is enabled, this task will exit.
 void disabled() {
 	liftControl->controllerSet(0);
-	slide.move(0);
+//	slide.move(0);
 	XDriveTrain->stop();
 }
 
@@ -216,19 +239,35 @@ void opcontrol() {
 //		backR.move_velocity(1.5625 * backRWheel);
 		//Forks
 //		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
-		liftControl->controllerSet(controller.getAnalog(okapi::ControllerAnalog::rightY)	);		
-		
-		if (forksLow.changedToPressed()) {
-			liftControl->setTarget(85.5);
-			std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << "\n";
+		if (eStop.changedToPressed()) {
+
+		std::cout << 
+			"target: " << liftControl->getTarget() << 
+			" error: " << liftControl->getError() <<
+			" position: " << rotationSensor->get() <<
+			"\n";
+			while(eStop.isPressed()) {
+				liftGroup.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY)	);
+				pros::delay(5);
+			}
 		}
+
+		if (forksLow.changedToPressed()) {
+			liftControl->setTarget(85);
+			std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << " Measure: " << rotationSensor->get() << "\n";
+		}
+		if (forksCarry.changedToPressed()) {
+			liftControl->setTarget(75);
+			std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << " Measure: " << rotationSensor->get() << "\n";
+		}
+
 
 		 
 
 		//Slide
-		if (slideButton.changedToPressed()) {
-			slide.fullMove(127);
-		}
+//		if (slideButton.changedToPressed()) {
+//			slide.fullMove(127);
+//		}
 		//Tilt Lock	
 		static bool tilted { false };
 		int roll = std::abs(inertial.get_roll());
@@ -240,6 +279,49 @@ void opcontrol() {
 			XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 			tilted = !tilted;
 		}
+		static int pidsel { 0 };
+		if (buttonY.changedToPressed()) {
+			pidsel = 0;
+		}
+		if (buttonB.changedToPressed()) {
+			pidsel = 1;
+		}
+		if (buttonA.changedToPressed()) {
+			pidsel = 2;
+		}
+		if (pidsel == 0) {
+			if (buttonUp.changedToPressed()){
+				liftkP = liftkP + 0.001;
+				controller.setText(0, 0, std::to_string( liftkP );
+			}
+			if (buttonDown.changedToPressed()){
+				liftkP = liftkP - 0.001;
+				controller.setText(0, 0, std::to_string( liftkP );
+			}
+		}
+
+		if (pidsel == 1) {
+			if (buttonUp.changedToPressed()){
+				liftkI = liftkI + 0.001;
+				controller.setText(0, 0, std::to_string( liftkI );
+			}
+			if (buttonDown.changedToPressed()){
+				liftkI = liftkI - 0.001;
+				controller.setText(0, 0, std::to_string( liftkI );
+			}
+		}
+
+		if (pidsel == 2) {
+			if (buttonUp.changedToPressed()){
+				liftkD = liftkD + 0.001;
+				controller.setText(0, 0, std::to_string( liftkD );
+			}
+			if (buttonDown.changedToPressed()){
+				liftkD = liftkD - 0.001;
+				controller.setText(0, 0, std::to_string( liftkD );
+			}
+		}
+
 //		static bool toggle { false };
 //		if (holdButton.changedToPressed()) {
 //			toggle = !toggle;
@@ -251,23 +333,20 @@ void opcontrol() {
 //			}
 //		}
 
-		switch (topLeft->getBrakeMode()) {
-		case okapi::AbstractMotor::brakeMode::hold :
-			std::cout << "hold mode\n";
-			break;
-		case okapi::AbstractMotor::brakeMode::coast :
-			std::cout << "coast mode\n";
-			break;
-		}
+//		switch (topLeft->getBrakeMode()) {
+//		case okapi::AbstractMotor::brakeMode::hold :
+//			std::cout << "hold mode\n";
+//			break;
+//		case okapi::AbstractMotor::brakeMode::coast :
+//			std::cout << "coast mode\n";
+//			break;
+//		}
 //		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
 //                                drivetrain.shake(100, 127, 3);
 //                                std::cout << "Shaking!!!\n";
 //                }
 //		auto stop = pros::micros();
 //		std::cout << stop - start  << std::endl;
-		if (eStop.isPressed()) {
-			liftControl->controllerSet(0);
-		};
 		pros::delay(10);
 	}
 }
