@@ -7,21 +7,74 @@
 
 using namespace okapi::literals;
 
+class cXDriveModel : public okapi::XDriveModel {
+//  using okapi::XDriveModel::XDriveModel;
+  public:
+    void xArcadeVel(const double ixSpeed,
+                          const double iforwardSpeed,
+                          const double iyaw,
+                          const double ithreshold) {
+      double xSpeed = std::clamp(ixSpeed, -1.0, 1.0);
+      if (std::abs(xSpeed) < ithreshold) {
+        xSpeed = 0;
+      }
+
+      double forwardSpeed = std::clamp(iforwardSpeed, -1.0, 1.0);
+      if (std::abs(forwardSpeed) < ithreshold) {
+        forwardSpeed = 0;
+      }
+
+      double yaw = std::clamp(iyaw, -1.0, 1.0);
+      if (std::abs(yaw) < ithreshold) {
+        yaw = 0;
+      }
+
+      topLeftMotor->moveVelocity(
+        static_cast<int16_t>(std::clamp(forwardSpeed + xSpeed + yaw, -1.0, 1.0) * maxVelocity));
+      topRightMotor->moveVelocity(
+        static_cast<int16_t>(std::clamp(forwardSpeed - xSpeed - yaw, -1.0, 1.0) * maxVelocity));
+      bottomRightMotor->moveVelocity(
+        static_cast<int16_t>(std::clamp(forwardSpeed + xSpeed - yaw, -1.0, 1.0) * maxVelocity));
+      bottomLeftMotor->moveVelocity(
+        static_cast<int16_t>(std::clamp(forwardSpeed - xSpeed + yaw, -1.0, 1.0) * maxVelocity));
+    } 
+};
+
+class cRotationSensor : public okapi::RotationSensor {
+	using okapi::RotationSensor::RotationSensor;
+	public:
+		double get() const {
+			const double out = pros::c::rotation_get_position(port);
+			if (out == PROS_ERR_F) {
+				return PROS_ERR_F;
+			} 
+			else {
+			// Convert from centidegrees to degrees and modulo to remove weird behavior
+				return std::remainder(out * 0.01 * reversed, 360);
+			}
+		}
+};
+
+
+
+
 
 
 pros::Imu inertial(4);
 // Construct the rotation sensor
-auto rotationSensor { std::make_shared<okapi::RotationSensor>(1, false) };
-auto baseRotarySensor { std::dynamic_pointer_cast<okapi::RotarySensor>(rotationSensor) };
+auto rotationSensor { std::make_shared<cRotationSensor>(1, false) };
+//auto crotationSensor { std::static_pointer_cast<cRotationSensor>(rotationSensor) };
+//auto rotationSensor { std::make_shared<okapi::RotationSensor>(1, false) };
+auto baseRotarySensor { std::static_pointer_cast<okapi::RotarySensor>(rotationSensor) };
 // Construct the lift motors
 //okapi::Motor lift(5, false, okapi::AbstractMotor::gearset::red, okapi::AbstractMotor::encoderUnits::degrees);
 //auto liftGroup { std::make_shared<okapi::MotorGroup>(-2, 9)};
 okapi::MotorGroup liftGroup({-3, 9});
 //liftGroup.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 //liftGroup.moveRelative(50);
-double liftkP = 0.001;
-double liftkI = 0.0001;
-double liftkD = 0.0001;
+double liftkP = 0.06;
+double liftkI = 0.0005;
+double liftkD = 0.0006;
 std::shared_ptr<okapi::AsyncPositionController<double, double>> liftControl = 
 	okapi::AsyncPosControllerBuilder().withMotor(liftGroup)
 	.withSensor(baseRotarySensor)
@@ -31,7 +84,8 @@ std::shared_ptr<okapi::AsyncPositionController<double, double>> liftControl =
 
 
 // Construct the drivetrain
-std::shared_ptr<okapi::OdomChassisController> drive = 
+
+std::shared_ptr<okapi::ChassisController> drive = 
 	okapi::ChassisControllerBuilder()
 		.withMotors(
 				2, 
@@ -39,7 +93,7 @@ std::shared_ptr<okapi::OdomChassisController> drive =
 				-11, 
 				20
 			   )
-		.withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15.25_in}, okapi::imev5GreenTPR})
+		.withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15.5_in}, okapi::imev5GreenTPR})
 //		.withGains(
 //			{0.00075, 0.0000, 0.0000}, //Distance controller gains
 //			{0.000, 0, 0.000}, // Turn controller gain
@@ -50,8 +104,8 @@ std::shared_ptr<okapi::OdomChassisController> drive =
 //			std::make_unique<AverageFilter<3>>(), // Turn controller filter
 //			std::make_unique<AverageFilter<3>>()  // Angle controller filter
 //			)
-		.withOdometry()
-		.buildOdometry();
+//		.withOdometry()
+		.build();
 
 
 std::shared_ptr<okapi::AsyncMotionProfileController> profiler = 
@@ -65,10 +119,11 @@ std::shared_ptr<okapi::AsyncMotionProfileController> profiler =
 		.buildMotionProfileController();
 
 
-auto XDriveTrain { std::dynamic_pointer_cast<okapi::XDriveModel>(drive->getModel()) };
-auto topLeft { XDriveTrain->getTopLeftMotor() };
-// Construct the slide
-//slider::Slide slide (6, true);
+//auto XDriveTrain { std::static_pointer_cast<okapi::XDriveModel>(drive->getModel()) };
+auto cXDriveTrain { std::static_pointer_cast<cXDriveModel>(drive->getModel()) };
+//auto XDriveTrain { std::dynamic_pointer_cast<cXDriveModel>(drive->getModel()) };
+//auto XDriveTrain { std::
+auto liftPIDController { std::dynamic_pointer_cast<okapi::AsyncPosPIDController>(liftControl) };
 
 // Construct the controller
 okapi::Controller controller;
@@ -77,18 +132,17 @@ okapi::ControllerButton holdButton(okapi::ControllerDigital::B);
 okapi::ControllerButton forksLow(okapi::ControllerDigital::R2);
 okapi::ControllerButton forksCarry(okapi::ControllerDigital::R1);
 okapi::ControllerButton forksLoad(okapi::ControllerDigital::L2);
+okapi::ControllerButton forksStore(okapi::ControllerDigital::L1);
 okapi::ControllerButton eStop(okapi::ControllerDigital::X);
 okapi::ControllerButton buttonY(okapi::ControllerDigital::Y);
 okapi::ControllerButton buttonB(okapi::ControllerDigital::B);
 okapi::ControllerButton buttonA(okapi::ControllerDigital::A);
 okapi::ControllerButton buttonUp(okapi::ControllerDigital::up);
 okapi::ControllerButton buttonDown(okapi::ControllerDigital::down);
-// okapi::ControllerButton forksStore();
 
 // A callback function for LLEMU's center button.
 void on_center_button() {
 }
-
 // Runs initialization code. This occurs as soon as the program is started.
 // All other competition modes are blocked by initialize
 void initialize() {
@@ -100,8 +154,6 @@ void initialize() {
 		)
 	);
 	liftGroup.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	
-	
 
 }
 
@@ -109,9 +161,10 @@ void initialize() {
 // the VEX Competition Switch, following either autonomous or opcontrol. When
 // the robot is enabled, this task will exit.
 void disabled() {
-	liftControl->controllerSet(0);
+	liftControl->flipDisable(true);
+	liftGroup.moveVoltage(0);
 //	slide.move(0);
-	XDriveTrain->stop();
+	cXDriveTrain->stop();
 }
 
 /**
@@ -123,7 +176,11 @@ void disabled() {
  * This task will exit when the robot is enabled and autonomous or opcontrol
  * starts.
  */
-void competition_initialize() {}
+void competition_initialize() {
+
+
+
+}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
@@ -136,19 +193,32 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-
+void turnAngle() {
+//	XDriveTrain->
+}
 
 void autonomous() {
-//	profiler->setTarget("A");
-//	profiler->waitUntilSettled();
-	while(true) {
-		auto start = pros::micros();
-		auto accel = inertial.get_accel();
-		auto stop = pros::micros();
-//		std::cout << stop - start << std::endl;
-		std::cout << accel.x << ", " << accel.y << ", " << accel.z << std::endl;
-		pros::delay(1);
-	}
+
+//	liftControl->setTarget(95);
+//	pros::delay(500);
+//	drive->moveDistance(3_ft);
+//	liftControl->setTarget(55);
+//	pros::delay(500);
+//	drive->moveDistance(-2_ft);
+	liftControl->flipDisable(false);
+	liftControl->setTarget(95);
+	pros::delay(750);
+	cXDriveTrain->forward(200);
+	pros::delay(1000);
+	cXDriveTrain->stop();
+	pros::delay(250);
+	liftControl->setTarget(55);
+	pros::delay(500);
+	cXDriveTrain->forward(-150);
+	cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	pros::delay(750);
+	cXDriveTrain->stop();
+	liftControl->setTarget(0);
 }
 
 
@@ -169,12 +239,7 @@ void autonomous() {
 
 
 void opcontrol() {
-//	constexpr double ialpha { 0.2 };
-//	constexpr double ibeta {0.05 };
-
-//	okapi::EmaFilter leftXFilter(ialpha, ibeta);
-//	okapi::EmaFilter leftYFilter(ialpha, ibeta);
-//	okapi::EmaFilter rightXFilter(ialpha, ibeta);
+	liftControl->flipDisable(true);
 	okapi::AverageFilter<32> leftXFilter;
 	okapi::AverageFilter<32> leftYFilter;
 	okapi::AverageFilter<32> rightXFilter;
@@ -182,8 +247,6 @@ void opcontrol() {
 	//Rumble the controller as a warning that operator control is starting
 	controller.rumble("-");
 	
-
-
 	int translateY { 0 };
 	int translateX { 0 };
 	int rotation { 0 };
@@ -193,30 +256,18 @@ void opcontrol() {
 	int backRWheel { 0 };
 
 
-//	auto driveLut { driving::genDrivingLut() };
-
-//	for (int i = -127; i <= 127; i++){
-//		std::cout << i << ", " << driveLut[i] <<"\n";
-//	}
-//	int roll {0};
-	
-//	pros::Task shake{[&] {
-//		while(true) {
-//			if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)){
-//				drivetrain.shake(100, 127, 3);
-//				std::cout << "Shaking!!!\n";
-//			}
-//			pros::delay(20);
-//		}
-//	}};
 	while (true) {
-//		auto start = pros::micros();
 		//Driving
 		double drivingDeadzone {0.05};
 		double filteredRX {rightXFilter.filter(controller.getAnalog(okapi::ControllerAnalog::rightX))};
 		double filteredLY {leftYFilter.filter(controller.getAnalog(okapi::ControllerAnalog::leftY))};
 		double filteredLX {leftXFilter.filter(controller.getAnalog(okapi::ControllerAnalog::leftX))};
-		XDriveTrain->xArcade( filteredLX, filteredLY, filteredRX, drivingDeadzone);
+		//XDriveTrain->xArcade( filteredLX, filteredLY, filteredRX, drivingDeadzone);
+		cXDriveTrain->xArcadeVel( 
+				controller.getAnalog(okapi::ControllerAnalog::leftX),
+				controller.getAnalog(okapi::ControllerAnalog::leftY),
+				controller.getAnalog(okapi::ControllerAnalog::rightX), 
+				drivingDeadzone);
 //		double drivingDeadzone {0.05};
 //		XDriveTrain->xArcade(controller.getAnalog(okapi::ControllerAnalog::leftX),
 //						controller.getAnalog(okapi::ControllerAnalog::leftY),
@@ -239,88 +290,117 @@ void opcontrol() {
 //		backR.move_velocity(1.5625 * backRWheel);
 		//Forks
 //		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
-		if (eStop.changedToPressed()) {
+//		if (eStop.changedToPressed()) {
+//
+//		std::cout << 
+//			"target: " << liftControl->getTarget() << 
+//			" error: " << liftControl->getError() <<
+//			" position: " << rotationSensor->get() <<
+//			//" cposition: " << crotationSensor->get() <<
+//			"\n";
+//			while(eStop.isPressed()) {
+//				liftGroup.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY)	);
+//				pros::delay(5);
+//			}
+//		}
+//		static double prevRightY;
+		double rightY = controller.getAnalog(okapi::ControllerAnalog::rightY);
 
-		std::cout << 
-			"target: " << liftControl->getTarget() << 
-			" error: " << liftControl->getError() <<
-			" position: " << rotationSensor->get() <<
-			"\n";
-			while(eStop.isPressed()) {
-				liftGroup.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY)	);
-				pros::delay(5);
-			}
+		if (std::abs(rightY) > 0.05) {
+			liftControl->flipDisable(true);
+			liftGroup.moveVoltage(rightY * 12000);
+		}
+		else if (liftControl->isDisabled()) {
+			liftGroup.moveVoltage(0);
 		}
 
+// Rotary Sensor must be zeroed at precisely vertical arms.
 		if (forksLow.changedToPressed()) {
-			liftControl->setTarget(85);
-			std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << " Measure: " << rotationSensor->get() << "\n";
+			liftControl->flipDisable(false);
+			liftControl->setTarget(95);
 		}
 		if (forksCarry.changedToPressed()) {
-			liftControl->setTarget(75);
-			std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << " Measure: " << rotationSensor->get() << "\n";
+			liftControl->flipDisable(false);
+			liftControl->setTarget(85);
 		}
-
-
-		 
-
-		//Slide
-//		if (slideButton.changedToPressed()) {
-//			slide.fullMove(127);
-//		}
+		if (forksLoad.changedToPressed()) {
+			liftControl->flipDisable(false);
+			liftControl->setTarget(55);
+			//std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << " Measure: " << rotationSensor->get() << "\n";
+		}
+		if (forksStore.changedToPressed()) {
+            liftControl->flipDisable(false);
+            liftControl->setTarget(-5);
+        }
 		//Tilt Lock	
 		static bool tilted { false };
 		int roll = std::abs(inertial.get_roll());
 		if (!tilted && roll >= 10 && roll < 1000) {
-			XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+			std::cout << "triggered tiltbrake\n";
+			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 			tilted = !tilted;
 		}
 		else if (tilted && roll < 10) {
-			XDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 			tilted = !tilted;
 		}
-		static int pidsel { 0 };
-		if (buttonY.changedToPressed()) {
-			pidsel = 0;
-		}
-		if (buttonB.changedToPressed()) {
-			pidsel = 1;
-		}
-		if (buttonA.changedToPressed()) {
-			pidsel = 2;
-		}
-		if (pidsel == 0) {
-			if (buttonUp.changedToPressed()){
-				liftkP = liftkP + 0.001;
-				controller.setText(0, 0, std::to_string( liftkP );
-			}
-			if (buttonDown.changedToPressed()){
-				liftkP = liftkP - 0.001;
-				controller.setText(0, 0, std::to_string( liftkP );
-			}
-		}
 
-		if (pidsel == 1) {
-			if (buttonUp.changedToPressed()){
-				liftkI = liftkI + 0.001;
-				controller.setText(0, 0, std::to_string( liftkI );
-			}
-			if (buttonDown.changedToPressed()){
-				liftkI = liftkI - 0.001;
-				controller.setText(0, 0, std::to_string( liftkI );
-			}
-		}
 
-		if (pidsel == 2) {
-			if (buttonUp.changedToPressed()){
-				liftkD = liftkD + 0.001;
-				controller.setText(0, 0, std::to_string( liftkD );
-			}
-			if (buttonDown.changedToPressed()){
-				liftkD = liftkD - 0.001;
-				controller.setText(0, 0, std::to_string( liftkD );
-			}
-		}
+		// PID Tuning
+//		static int pidsel { 0 };
+//		if (buttonY.changedToPressed()) {
+//			pidsel = 0;
+//		}
+//		if (buttonB.changedToPressed()) {
+//			pidsel = 1;
+//		}
+//		if (buttonA.changedToPressed()) {
+//			pidsel = 2;
+//		}
+//		if (pidsel == 0) {
+//			if (buttonUp.changedToPressed()){
+//				liftkP = liftkP + 0.001;
+//				liftPIDController->setGains({liftkP, liftkI, liftkD});
+//				std::cout << "gains: " << liftkP << ", " << liftkI << ", " << liftkD << "\n";
+//				controller.setText(0, 0, std::to_string( liftkP ));
+//			}
+//			if (buttonDown.changedToPressed()){
+//				liftkP = liftkP - 0.001;
+//				controller.setText(0, 0, std::to_string( liftkP ));
+//				std::cout << "gains: " << liftkP << ", " << liftkI << ", " << liftkD << "\n";
+//				liftPIDController->setGains({liftkP, liftkI, liftkD});
+//			}
+//		}
+//
+//		if (pidsel == 1) {
+//			if (buttonUp.changedToPressed()){
+//				liftkI = liftkI + 0.0001;
+//				controller.setText(0, 0, std::to_string( liftkI ));
+//				std::cout << "gains: " << liftkP << ", " << liftkI << ", " << liftkD << "\n";
+//				liftPIDController->setGains({liftkP, liftkI, liftkD});
+//			}
+//			if (buttonDown.changedToPressed()){
+//				liftkI = liftkI - 0.0001;
+//				controller.setText(0, 0, std::to_string( liftkI ));
+//				std::cout << "gains: " << liftkP << ", " << liftkI << ", " << liftkD << "\n";
+//				liftPIDController->setGains({liftkP, liftkI, liftkD});
+//			}
+//		}
+//
+//		if (pidsel == 2) {
+//			if (buttonUp.changedToPressed()){
+//				liftkD = liftkD + 0.0001;
+//				controller.setText(0, 0, std::to_string( liftkD ));
+//				std::cout << "gains: " << liftkP << ", " << liftkI << ", " << liftkD << "\n";
+//				liftPIDController->setGains({liftkP, liftkI, liftkD});
+//			}
+//			if (buttonDown.changedToPressed()){
+//				liftkD = liftkD - 0.0001;
+//				controller.setText(0, 0, std::to_string( liftkD ));
+//				std::cout << "gains: " << liftkP << ", " << liftkI << ", " << liftkD << "\n";
+//				liftPIDController->setGains({liftkP, liftkI, liftkD});
+//			}
+//		}
 
 //		static bool toggle { false };
 //		if (holdButton.changedToPressed()) {
@@ -341,12 +421,6 @@ void opcontrol() {
 //			std::cout << "coast mode\n";
 //			break;
 //		}
-//		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-//                                drivetrain.shake(100, 127, 3);
-//                                std::cout << "Shaking!!!\n";
-//                }
-//		auto stop = pros::micros();
-//		std::cout << stop - start  << std::endl;
 		pros::delay(10);
 	}
 }
