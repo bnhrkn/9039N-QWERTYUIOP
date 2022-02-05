@@ -89,7 +89,7 @@ std::shared_ptr<okapi::ChassisController> drive =
 	okapi::ChassisControllerBuilder()
 		.withMotors(
 				2, 
-				-10, 
+				-7, 
 				-11, 
 				20
 			   )
@@ -162,7 +162,7 @@ void initialize() {
 // the robot is enabled, this task will exit.
 void disabled() {
 	liftControl->flipDisable(true);
-	liftGroup.moveVoltage(0);
+	liftGroup.moveVelocity(0);
 //	slide.move(0);
 	cXDriveTrain->stop();
 }
@@ -198,27 +198,47 @@ void turnAngle() {
 }
 
 void autonomous() {
-
+/*
 //	liftControl->setTarget(95);
 //	pros::delay(500);
 //	drive->moveDistance(3_ft);
 //	liftControl->setTarget(55);
 //	pros::delay(500);
 //	drive->moveDistance(-2_ft);
+	//cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	liftControl->flipDisable(false);
 	liftControl->setTarget(95);
 	pros::delay(750);
 	cXDriveTrain->forward(200);
-	pros::delay(1000);
+	pros::delay(1100);
 	cXDriveTrain->stop();
 	pros::delay(250);
 	liftControl->setTarget(55);
 	pros::delay(500);
+	
+	//strafe start
+
+	pros::delay(250);
+
+	cXDriveTrain->strafe(-150);
+	pros::delay(1000);
+	cXDriveTrain->stop();
+	pros::delay(250);
+
+	//strafe end
+
 	cXDriveTrain->forward(-150);
 	cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	pros::delay(750);
+	pros::delay(1400); // straight reverse delay
+//	pros::delay(800); // strafe reverse delay
 	cXDriveTrain->stop();
+//strafe turn
+	cXDriveTrain->rotate(-200);
+	pros::delay(350);
+	cXDriveTrain->stop();
+// strafe end turn
 	liftControl->setTarget(0);
+*/	
 }
 
 
@@ -239,6 +259,7 @@ void autonomous() {
 
 
 void opcontrol() {
+	cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	liftControl->flipDisable(true);
 	okapi::AverageFilter<32> leftXFilter;
 	okapi::AverageFilter<32> leftYFilter;
@@ -308,10 +329,10 @@ void opcontrol() {
 
 		if (std::abs(rightY) > 0.05) {
 			liftControl->flipDisable(true);
-			liftGroup.moveVoltage(rightY * 12000);
+			liftGroup.moveVelocity(rightY * 100);
 		}
 		else if (liftControl->isDisabled()) {
-			liftGroup.moveVoltage(0);
+			liftGroup.moveVelocity(0);
 		}
 
 // Rotary Sensor must be zeroed at precisely vertical arms.
