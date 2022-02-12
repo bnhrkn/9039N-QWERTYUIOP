@@ -379,24 +379,40 @@ void autonomous() {
 			drive->turnAngle(0_deg);
 				pros::delay(50);
 				liftControl->waitUntilSettled();
+				pros::delay(250);
 			drive->moveDistance(13_in);
 			liftControl->setTarget(55);
+			pros::delay(400);
+			drive->moveDistance(-8_in);
 			cXDriveTrain->strafe(150);
-			pros::delay(1150);
+			pros::delay(1000);
 			cXDriveTrain->stop();
 			drive->turnAngle(0_deg);
 			liftControl->setTarget(95);
 			pros::delay(250);
-			drive->moveDistance(95_in);
+			drive->moveDistance(103_in);
 			liftControl->setTarget(55);
 				pros::delay(50);
 				liftControl->waitUntilSettled();
 				pros::delay(200);
-			drive->moveDistance(-1_ft);
+			drive->moveDistance(-4_ft);
+			//cXDriveTrain->driveVector(-150, 0);
+			//pros::delay(1000);
 			cXDriveTrain->driveVector(-150, 0);
-			pros::delay(1000);
+			pros::delay(200);
+			cXDriveTrain->driveVector(150, 0);
+			pros::delay(200);
 			cXDriveTrain->stop();
-			drive->turnAngle(-45_deg);
+			drive->turnAngle(-45_deg);/*
+			liftControl->setTarget(95);
+				pros::delay(50);
+				liftControl->waitUntilSettled();
+				pros::delay(200);
+			drive->moveDistance(4_ft);
+			liftControl->setTarget(55);
+				pros::delay(50);
+				liftControl->waitUntilSettled();
+			drive->moveDistance(-3_ft);*/
 			break;
 		case 1: // Left Side Fast Neutral and score hg
 			liftControl->flipDisable(false);
@@ -408,12 +424,13 @@ void autonomous() {
 			drive->moveDistance(47_in);
 			liftControl->setTarget(55);
 			pros::delay(100);
-			drive->turnAngle(25_deg);
+			drive->turnAngle(28_deg);
 			drive->moveDistance(-51_in);
-			drive->turnAngle(90_deg);
+			drive->turnAngle(93_deg);
 			liftControl->setTarget(95);
 				pros::delay(50);
 				liftControl->waitUntilSettled();
+				pros::delay(200);
 			drive->moveDistance(17_in);
 			liftControl->setTarget(55);
 			pros::delay(500);
@@ -431,7 +448,7 @@ void autonomous() {
 			pros::delay(650);
 			drive->moveDistance(45_in);
 			liftControl->setTarget(55);
-			pros::delay(100);
+			pros::delay(500);
 			drive->moveDistance(-45_in);
 			liftControl->setTarget(95);
 			drive->turnAngle(45_deg);
@@ -444,6 +461,11 @@ void autonomous() {
             cXDriveTrain->stop();
 			drive->turnAngle(0_deg);
 			drive->moveDistance(2_ft);
+			cXDriveTrain->driveVector(-150, 0);
+            pros::delay(200);
+            cXDriveTrain->driveVector(150, 0);
+            pros::delay(200);
+            cXDriveTrain->stop();
 			drive->turnAngle(-90_deg);
 			//Continue moving further
 			break;
@@ -483,9 +505,11 @@ void opcontrol() {
 
 		//Forks
 //		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
+		/*
 		if (eStop.isPressed()) {
 			drive->turnAngle(0_deg);
 			drive->moveDistance(6_ft);
+			*/
 			//drive->turnAngle(90_deg);
 			
 //		std::cout << inertial.get_heading() << "\n";
@@ -501,7 +525,7 @@ void opcontrol() {
 			//	liftGroup.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY)	);
 			//	pros::delay(5);
 			//}*/
-		} 
+	//	} 
 
 	//}
 //		static double prevRightY;
@@ -519,33 +543,33 @@ void opcontrol() {
 		if (forksLow.changedToPressed()) {
 			liftControl->flipDisable(false);
 			liftControl->setTarget(95);
-		}
+		}/*
 		if (forksCarry.changedToPressed()) {
 			liftControl->flipDisable(false);
 			liftControl->setTarget(85);
-		}
+		}*/
 		if (forksLoad.changedToPressed()) {
 			liftControl->flipDisable(false);
 			liftControl->setTarget(55);
 			//std::cout << "liftControl pressed. Disabled: " << liftControl->isDisabled() << " Error: " << liftControl->getError() << " Measure: " << rotationSensor->get() << "\n";
-		}
+		}/*
 		if (forksStore.changedToPressed()) {
             liftControl->flipDisable(false);
             liftControl->setTarget(-5);
-        }
+        }*/
 		//Tilt Lock	
 		static bool tilted { false };
 		int roll = std::abs(inertial.get_roll());
-		if (!tilted && roll >= 3 && roll < 1000) {
+		if (!tilted && roll >= 4 && roll < 1000) {
 			std::cout << "triggered tiltbrake\n";
 			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 			tilted = !tilted;
 		}
-		else if (tilted && roll < 3) {
+		else if (tilted && roll < 4) {
 			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 			tilted = !tilted;
 		}
-
+/*
 		static double ckP { 0.0000 };
 		static double ckI { 0.0000 };
 		static double ckD { 0.0000 };
@@ -599,6 +623,7 @@ void opcontrol() {
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
 		}
+		*/
 /*
 			drive->setGains(
 					okapi::IterativePosPIDController::Gains{ckP,ckI,ckD}, 
