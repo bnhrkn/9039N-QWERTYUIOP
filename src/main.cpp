@@ -376,47 +376,76 @@ void autonomous() {
 		case 0: // Dual home goal wp
 			liftControl->flipDisable(false);
 			liftControl->setTarget(95);
+			drive->turnAngle(0_deg);
 				pros::delay(50);
 				liftControl->waitUntilSettled();
-			drive->moveDistance(15_in);
+			drive->moveDistance(13_in);
 			liftControl->setTarget(55);
 			cXDriveTrain->strafe(150);
-			pros::delay(1350);
+			pros::delay(1150);
 			cXDriveTrain->stop();
 			drive->turnAngle(0_deg);
 			liftControl->setTarget(95);
 			pros::delay(250);
-			drive->moveDistance(100_in);
+			drive->moveDistance(95_in);
 			liftControl->setTarget(55);
 				pros::delay(50);
 				liftControl->waitUntilSettled();
-			cXDriveTrain->forward(-200);
+				pros::delay(200);
+			drive->moveDistance(-1_ft);
+			cXDriveTrain->driveVector(-150, 0);
 			pros::delay(1000);
 			cXDriveTrain->stop();
+			drive->turnAngle(-45_deg);
+			break;
 		case 1: // Left Side Fast Neutral and score hg
 			liftControl->flipDisable(false);
+			drive->turnAngle(10_deg);
 			liftControl->setTarget(95);
 				//pros::delay(50);
 				//liftControl->waitUntilSettled();
-			drive->moveDistance(51_in);
+			pros::delay(650);
+			drive->moveDistance(47_in);
 			liftControl->setTarget(55);
-			pros::delay(200);
+			pros::delay(100);
+			drive->turnAngle(25_deg);
 			drive->moveDistance(-51_in);
 			drive->turnAngle(90_deg);
 			liftControl->setTarget(95);
 				pros::delay(50);
 				liftControl->waitUntilSettled();
-			drive->moveDistance(15_in);
+			drive->moveDistance(17_in);
 			liftControl->setTarget(55);
-				pros::delay(50);
-				liftControl->waitUntilSettled();
-			cXDriveTrain->forward(-200);
 			pros::delay(500);
-			cXDriveTrain->stop();
+			//cXDriveTrain->driveVector(-150, 0);
+			//pros::delay(500);
+			//cXDriveTrain->stop();
+			drive->moveDistance(-13_in);
 			drive->turnAngle(45_deg);
-			drive->moveDistance(2_ft);
+			drive->moveDistance(3_ft);
 			break;
 		case 2: // Right Side Fast neutral and score hg
+			liftControl->flipDisable(false);
+			liftControl->setTarget(95);
+			drive->turnAngle(0_deg);
+			pros::delay(650);
+			drive->moveDistance(45_in);
+			liftControl->setTarget(55);
+			pros::delay(100);
+			drive->moveDistance(-45_in);
+			liftControl->setTarget(95);
+			drive->turnAngle(45_deg);
+				liftControl->waitUntilSettled();
+			drive->moveDistance(22_in);
+			liftControl->setTarget(55);
+			pros::delay(500);
+            cXDriveTrain->driveVector(-150, 0);
+            pros::delay(500);
+            cXDriveTrain->stop();
+			drive->turnAngle(0_deg);
+			drive->moveDistance(2_ft);
+			drive->turnAngle(-90_deg);
+			//Continue moving further
 			break;
 		//default:
 			//Do nothing
@@ -570,12 +599,12 @@ void opcontrol() {
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
 		}
-
-/*			drive->setGains(
+/*
+			drive->setGains(
 					okapi::IterativePosPIDController::Gains{ckP,ckI,ckD}, 
 					okapi::IterativePosPIDController::Gains{0.0013, 0.00015,0.00001}, 
 					okapi::IterativePosPIDController::Gains{0.0013,0.00015,0.00001});
-	*/				
+*/					
 //		static bool toggle { false };
 //		if (holdButton.changedToPressed()) {
 //			toggle = !toggle;

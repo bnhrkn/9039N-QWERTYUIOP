@@ -45,6 +45,7 @@ void autonSelectorBtnAction() {
 void preRunBtnAction() {
 	liftControl->flipDisable(false);
 	liftControl->setTarget(-17.75);
+	inertial.reset();
 }
 
 void graphsBtnAction() {
