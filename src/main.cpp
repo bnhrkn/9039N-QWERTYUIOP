@@ -18,57 +18,7 @@ auto logger = std::make_shared<okapi::Logger> (
 pros::Imu inertial(4);
 
 class cXDriveModel : public okapi::XDriveModel {
-  	protected:
-		std::shared_ptr<okapi::AbstractMotor> middleLeftMotor;
-		std::shared_ptr<okapi::AbstractMotor> middleRightMotor;
-		
-	public:
-	cXDriveModel(
-			std::shared_ptr<okapi::AbstractMotor> itopLeftMotor,
-                         std::shared_ptr<okapi::AbstractMotor> itopRightMotor,
-                         std::shared_ptr<okapi::AbstractMotor> ibottomRightMotor,
-                         std::shared_ptr<okapi::AbstractMotor> ibottomLeftMotor,
-						 std::shared_ptr<okapi::AbstractMotor> imiddleLeftMotor,
-						 std::shared_ptr<okapi::AbstractMotor> imiddleRightMotor,
-                         std::shared_ptr<okapi::ContinuousRotarySensor> ileftEnc,
-                         std::shared_ptr<okapi::ContinuousRotarySensor> irightEnc,
-                         const double imaxVelocity,
-                         const double imaxVoltage)
-  : okapi::XDriveModel(
-    itopLeftMotor,
-    itopRightMotor,
-    ibottomRightMotor,
-    ibottomLeftMotor,
-    ileftEnc,
-    irightEnc,
-	imaxVelocity,
-    imaxVoltage
-	),
-	middleLeftMotor(std::move(imiddleLeftMotor)),
-	middleRightMotor(std::move(imiddleRightMotor)) {
-	}
-	
-	void driveVector(const double iforwardSpeed, const double iyaw) {
-  // This code is taken from WPIlib. All credit goes to them. Link:
-  // https://github.com/wpilibsuite/allwpilib/blob/master/wpilibc/src/main/native/cpp/Drive/DifferentialDrive.cpp#L73
-  const double forwardSpeed = std::clamp(iforwardSpeed, -1.0, 1.0);
-  const double yaw = std::clamp(iyaw, -1.0, 1.0);
-
-  double leftOutput = forwardSpeed + yaw;
-  double rightOutput = forwardSpeed - yaw;
-  if (const double maxInputMag = std::max<double>(std::abs(leftOutput), std::abs(rightOutput));
-      maxInputMag > 1) {
-    leftOutput /= maxInputMag;
-    rightOutput /= maxInputMag;
-  }
-
-  topLeftMotor->moveVelocity(static_cast<int16_t>(leftOutput * maxVelocity));
-  topRightMotor->moveVelocity(static_cast<int16_t>(rightOutput * maxVelocity));
-  bottomRightMotor->moveVelocity(static_cast<int16_t>(rightOutput * maxVelocity));
-  bottomLeftMotor->moveVelocity(static_cast<int16_t>(leftOutput * maxVelocity));
-  middleLeftMotor->moveVelocity(static_cast<int16_t>(leftOutput * maxVelocity));
-  middleRightMotor->moveVelocity(static_cast<int16_t>(rightOutput * maxVelocity));
-}
+  public:
     void xArcadeVel(const double ixSpeed,
                           const double iforwardSpeed,
                           const double iyaw,
@@ -96,10 +46,6 @@ class cXDriveModel : public okapi::XDriveModel {
         static_cast<int16_t>(std::clamp(forwardSpeed + xSpeed - yaw, -1.0, 1.0) * maxVelocity));
       bottomLeftMotor->moveVelocity(
         static_cast<int16_t>(std::clamp(forwardSpeed - xSpeed + yaw, -1.0, 1.0) * maxVelocity));
-	  middleLeftMotor->moveVelocity(
-        static_cast<int16_t>(std::clamp(forwardSpeed + yaw, -1.0, 1.0) * maxVelocity));
-	  middleRightMotor->moveVelocity(
-        static_cast<int16_t>(std::clamp(forwardSpeed - yaw, -1.0, 1.0) * maxVelocity));
     } 
 };
 
@@ -275,7 +221,7 @@ static void trampoline(void *context) {
 
 
 // Construct the rotation sensor
-auto rotationSensor { std::make_shared<cRotationSensor>(1, true) };
+auto rotationSensor { std::make_shared<cRotationSensor>(1, false) };
 auto baseRotarySensor { std::static_pointer_cast<okapi::RotarySensor>(rotationSensor) };
 
 // Construct the lift motors
@@ -298,17 +244,13 @@ auto topLeft { std::make_shared<okapi::Motor>(2) };
 auto topRight { std::make_shared<okapi::Motor>(-7) };
 auto bottomRight { std::make_shared<okapi::Motor>(-11) };
 auto bottomLeft { std::make_shared<okapi::Motor>(20) };
-auto middleLeft { std::make_shared<okapi::Motor>(5) };
-auto middleRight { std::make_shared<okapi::Motor>(-6) };
 
 // Drivemodel
-auto XDriveTrain { std::make_shared<cXDriveModel>(
+auto XDriveTrain { std::make_shared<okapi::XDriveModel>(
 		topLeft,
 		topRight,
 		bottomRight,
 		bottomLeft,
-		middleLeft,
-		middleRight,
 		topLeft->getEncoder(),
 		topRight->getEncoder(),
 		200,
@@ -456,14 +398,10 @@ void autonomous() {
 			drive->moveDistance(-4_ft);
 			//cXDriveTrain->driveVector(-150, 0);
 			//pros::delay(1000);
-			cXDriveTrain->driveVector(-100, 0);
-			pros::delay(300);
+			cXDriveTrain->driveVector(-150, 0);
+			pros::delay(200);
 			cXDriveTrain->driveVector(150, 0);
 			pros::delay(200);
-			cXDriveTrain->driveVector(-100, 0);
-            pros::delay(300);
-            cXDriveTrain->driveVector(150, 0);
-            pros::delay(200);
 			cXDriveTrain->stop();
 			drive->turnAngle(-45_deg);/*
 			liftControl->setTarget(95);
@@ -502,15 +440,6 @@ void autonomous() {
 			drive->moveDistance(-13_in);
 			drive->turnAngle(45_deg);
 			drive->moveDistance(3_ft);
-			cXDriveTrain->driveVector(-100, 0);
-			pros::delay(300);
-			cXDriveTrain->driveVector(150, 0);
-			pros::delay(200);
-			cXDriveTrain->driveVector(-100, 0);
-            pros::delay(300);
-            cXDriveTrain->driveVector(150, 0);
-            pros::delay(200);
-			cXDriveTrain->stop();
 			break;
 		case 2: // Right Side Fast neutral and score hg
 			liftControl->flipDisable(false);
@@ -531,17 +460,12 @@ void autonomous() {
             pros::delay(500);
             cXDriveTrain->stop();
 			drive->turnAngle(0_deg);
-			drive->moveDistance(2_ft);	
-            
-			cXDriveTrain->driveVector(-100, 0);
-			pros::delay(300);
-			cXDriveTrain->driveVector(150, 0);
-			pros::delay(200);
-			cXDriveTrain->driveVector(-100, 0);
-            pros::delay(300);
+			drive->moveDistance(2_ft);
+			cXDriveTrain->driveVector(-150, 0);
+            pros::delay(200);
             cXDriveTrain->driveVector(150, 0);
             pros::delay(200);
-			cXDriveTrain->stop();
+            cXDriveTrain->stop();
 			drive->turnAngle(-90_deg);
 			//Continue moving further
 			break;
@@ -581,15 +505,15 @@ void opcontrol() {
 
 		//Forks
 //		lift.move_velocity(1.5625 * driveLut[master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)]);
-		
+		/*
 		if (eStop.isPressed()) {
-		/*	drive->turnAngle(0_deg);
+			drive->turnAngle(0_deg);
 			drive->moveDistance(6_ft);
 			*/
 			//drive->turnAngle(90_deg);
 			
 //		std::cout << inertial.get_heading() << "\n";
-
+/*
 		std::cout << 
 			"target: " << liftControl->getTarget() << 
 			" error: " << liftControl->getError() <<
@@ -601,7 +525,7 @@ void opcontrol() {
 			//	liftGroup.moveVoltage(controller.getAnalog(okapi::ControllerAnalog::rightY)	);
 			//	pros::delay(5);
 			//}*/
-		} 
+	//	} 
 
 	//}
 //		static double prevRightY;
