@@ -19,7 +19,7 @@ auto logger = std::make_shared<okapi::Logger>(
 pros::Imu inertial(4);
 
 // Construct the rotation sensor
-auto rotationSensor{std::make_shared<cRotationSensor>(1, true)};
+auto rotationSensor{std::make_shared<cRotationSensor>(1, false)};
 auto baseRotarySensor{std::static_pointer_cast<okapi::RotarySensor>(rotationSensor)};
 
 // Construct the lift motors
