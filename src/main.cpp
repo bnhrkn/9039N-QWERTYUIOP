@@ -285,7 +285,7 @@ void opcontrol()
 		// Manual fork control with right stick y-axis
 		if (std::abs(rightY) > 0.05) // Deadzone
 		{
-			if (liftControl->isDisabled()) // Dont spam flipdisable, fills log
+			if (!liftControl->isDisabled()) // Dont spam flipdisable, fills log
 			{
 				liftControl->flipDisable(true); // Stop any automated movement
 			}
