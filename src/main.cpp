@@ -16,7 +16,7 @@ auto logger = std::make_shared<okapi::Logger>(
 );
 
 //Construct the IMU
-pros::Imu inertial(4);
+pros::Imu inertial(17);
 
 // Construct the rotation sensor
 auto rotationSensor{std::make_shared<cRotationSensor>(1, false)};
@@ -28,9 +28,9 @@ okapi::MotorGroup liftGroup({-3, 9});
 double liftkP = 0.06;
 double liftkI = 0.0005;
 double liftkD = 0.0006;
-std::shared_ptr<okapi::AsyncPositionController<double, double>> liftControl =
-	okapi::AsyncPosControllerBuilder().withMotor(liftGroup).withSensor(baseRotarySensor).withGains({liftkP, liftkI, liftkD}).withGearset(okapi::AbstractMotor::GearsetRatioPair(okapi::AbstractMotor::gearset::red, 1)).withTimeUtilFactory(okapi::ConfigurableTimeUtilFactory(1, std::numeric_limits<double>::max(), 0_ms)).withLogger(logger).build();
-
+std::shared_ptr<okapi::AsyncPosPIDController> liftControl =
+	std::static_pointer_cast<okapi::AsyncPosPIDController>(
+		okapi::AsyncPosControllerBuilder().withMotor(liftGroup).withSensor(baseRotarySensor).withGains({liftkP, liftkI, liftkD}).withGearset(okapi::AbstractMotor::GearsetRatioPair(okapi::AbstractMotor::gearset::red, 1)).withTimeUtilFactory(okapi::ConfigurableTimeUtilFactory(1, std::numeric_limits<double>::max(), 0_ms)).withLogger(logger).build());
 // Drive Motors
 auto topLeft{std::make_shared<okapi::Motor>(2)};
 auto topRight{std::make_shared<okapi::Motor>(-7)};
@@ -319,7 +319,7 @@ void opcontrol()
 		//Tilt Lock
 		static bool tilted{false};				  // State variable holding tilt status
 		int roll = std::abs(inertial.get_roll()); // Grab the IMU roll (up and down front tilt)
-		if (!tilted && roll >= 4 && roll < 1000)  // Minimum roll of 4 deg. IMU reading is inf during initalization, cap at 1000
+		if (!tilted && roll >= 10 && roll < 1000) // Minimum roll of 10 deg. IMU reading is inf during initalization, cap at 1000
 		{
 			LOG_INFO_S("Tilt braking engaged");
 			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
@@ -331,61 +331,75 @@ void opcontrol()
 			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 			tilted = !tilted;
 		}
-		/*
-		static double ckP { 0.0000 };
-		static double ckI { 0.0000 };
-		static double ckD { 0.0000 };
+
+		static double ckP{0.0000};
+		static double ckI{0.0000};
+		static double ckD{0.0000};
 
 		// PID Tuning
-		static int pidsel { 0 };
-		if (buttonY.changedToPressed()) {
+		static int pidsel{0};
+		if (buttonY.changedToPressed())
+		{
 			pidsel = 0;
 		}
-		if (buttonB.changedToPressed()) {
+		if (buttonB.changedToPressed())
+		{
 			pidsel = 1;
 		}
-		if (buttonA.changedToPressed()) {
+		if (buttonA.changedToPressed())
+		{
 			pidsel = 2;
 		}
-		if (pidsel == 0) {
-			if (buttonUp.changedToPressed()){
+		if (pidsel == 0)
+		{
+			if (buttonUp.changedToPressed())
+			{
 				ckP = ckP + 0.0001;
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
-				controller.setText(0, 0, std::to_string( ckP ));
+				controller.setText(0, 0, std::to_string(ckP));
 			}
-			if (buttonDown.changedToPressed()){
+			if (buttonDown.changedToPressed())
+			{
 				ckP = ckP - 0.0001;
-				controller.setText(0, 0, std::to_string( ckP ));
+				controller.setText(0, 0, std::to_string(ckP));
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
 		}
 
-		if (pidsel == 1) {
-			if (buttonUp.changedToPressed()){
+		if (pidsel == 1)
+		{
+			if (buttonUp.changedToPressed())
+			{
 				ckI = ckI + 0.00001;
-				controller.setText(0, 0, std::to_string( ckI ));
+				controller.setText(0, 0, std::to_string(ckI));
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
-			if (buttonDown.changedToPressed()){
+			if (buttonDown.changedToPressed())
+			{
 				ckI = ckI - 0.00001;
-				controller.setText(0, 0, std::to_string( ckI ));
+				controller.setText(0, 0, std::to_string(ckI));
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
 		}
 
-		if (pidsel == 2) {
-			if (buttonUp.changedToPressed()){
+		if (pidsel == 2)
+		{
+			if (buttonUp.changedToPressed())
+			{
 				ckD = ckD + 0.00001;
-				controller.setText(0, 0, std::to_string( ckD ));
+				controller.setText(0, 0, std::to_string(ckD));
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
-			if (buttonDown.changedToPressed()){
+			if (buttonDown.changedToPressed())
+			{
 				ckD = ckD - 0.00001;
-				controller.setText(0, 0, std::to_string( ckD ));
+				controller.setText(0, 0, std::to_string(ckD));
 				std::cout << "gains: " << ckP << ", " << ckI << ", " << ckD << "\n";
 			}
 		}
-		*/
+		liftControl->setGains(
+			okapi::IterativePosPIDController::Gains{ckP, ckI, ckD});
+
 		/*
 			drive->setGains(
 					okapi::IterativePosPIDController::Gains{ckP,ckI,ckD}, 
