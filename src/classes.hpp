@@ -4,8 +4,9 @@
 #include <cmath>
 
 class cXDriveModel : public okapi::XDriveModel
-
 {
+    using okapi::XDriveModel::XDriveModel;
+
 public:
     void driveVector(const double iforwardSpeed, const double iyaw);
     void xArcadeVel(const double ixSpeed,
