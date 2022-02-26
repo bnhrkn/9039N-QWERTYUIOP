@@ -300,7 +300,7 @@ void opcontrol()
 		if (forksLow.changedToPressed()) // Forks on ground position
 		{
 			liftControl->flipDisable(false); // Enable controller after potential manual control disablement
-			liftControl->setTarget(95);		 // Loading target
+			liftControl->setTarget(98);		 // Loading target
 		}									 /*
 		if (forksCarry.changedToPressed()) {
 			liftControl->flipDisable(false);
