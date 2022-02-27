@@ -331,7 +331,7 @@ void opcontrol()
 			cXDriveTrain->setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 			tilted = !tilted;
 		}
-
+		/*
 		static double ckP{0.0000};
 		static double ckI{0.0000};
 		static double ckD{0.0000};
@@ -399,7 +399,7 @@ void opcontrol()
 		}
 		liftControl->setGains(
 			okapi::IterativePosPIDController::Gains{ckP, ckI, ckD});
-
+*/
 		/*
 			drive->setGains(
 					okapi::IterativePosPIDController::Gains{ckP,ckI,ckD}, 
