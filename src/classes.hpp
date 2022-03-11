@@ -51,6 +51,7 @@ public:
     void loop();
     void startThread();
     static void trampoline(void *context);
+    void reset();
 };
 
 class cRotationSensor : public okapi::RotationSensor

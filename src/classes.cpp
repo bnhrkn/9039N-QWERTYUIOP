@@ -163,3 +163,10 @@ void cChassisControllerPID::trampoline(void *context)
         static_cast<cChassisControllerPID *>(context)->loop();
     }
 }
+
+void cChassisControllerPID::reset()
+{
+    distancePid.reset();
+    turnPid.reset();
+    anglePid.reset();
+}
