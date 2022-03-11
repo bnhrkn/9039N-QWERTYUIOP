@@ -49,11 +49,12 @@ auto XDriveTrain{std::make_shared<cXDriveModel>(
 	12000)};
 
 // Chassis Controller PID Controllers
-//auto chassisTimeUtilFactory = okapi::ConfigurableTimeUtilFactory(1, 0.5, 50_ms);
+//auto chassisTimeUtilFactory = okapi::ConfigurableTimeUtilFactory(1, std::numeric_limits<double>::max(), 0);
 auto chassisTimeUtilFactory = okapi::TimeUtilFactory();
 
 // Construct the Chassis Controller
 auto drive{std::make_shared<cChassisControllerPID>(
+	//chassisTimeUtilFactory.withSettledUtilParams(1, std::numeric_limits<double>::max(), 0_ms),
 	chassisTimeUtilFactory.create(),
 	XDriveTrain,
 	std::make_unique<okapi::IterativePosPIDController>(				   //Distance
@@ -158,7 +159,7 @@ void autonomous()
 		pros::delay(50);
 		liftControl->waitUntilSettled();
 		pros::delay(200);
-		drive->moveDistance(-4_ft);
+		drive->moveDistance(-7_ft);
 		//cXDriveTrain->driveVector(-150, 0);
 		//pros::delay(1000);
 		cXDriveTrain->driveVector(-100, 0);
@@ -187,7 +188,7 @@ void autonomous()
 		liftControl->setTarget(95);
 		//pros::delay(50);
 		//liftControl->waitUntilSettled();
-		pros::delay(650);
+		//pros::delay(650);
 		drive->moveDistance(47_in);
 		liftControl->setTarget(55);
 		pros::delay(100);
@@ -221,10 +222,10 @@ void autonomous()
 		liftControl->flipDisable(false);
 		liftControl->setTarget(95);
 		drive->turnAngle(0_deg);
-		pros::delay(650);
+		//pros::delay(650);
 		drive->moveDistance(45_in);
 		liftControl->setTarget(55);
-		pros::delay(500);
+		pros::delay(250);
 		drive->moveDistance(-45_in);
 		liftControl->setTarget(95);
 		drive->turnAngle(45_deg);
