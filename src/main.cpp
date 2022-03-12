@@ -126,6 +126,7 @@ void disabled()
 {
 	liftControl->flipDisable(true);
 	liftGroup.moveVelocity(0);
+	drive->resetController();
 	cXDriveTrain->stop();
 }
 
@@ -140,7 +141,8 @@ void autonomous()
 	case 0: // Dual home goal wp
 		liftControl->flipDisable(false);
 		liftControl->setTarget(95);
-		drive->turnAngle(0_deg);
+		//drive->turnAngle(0_deg);
+		drive->resetController();
 		pros::delay(50);
 		liftControl->waitUntilSettled();
 		pros::delay(250);
@@ -184,7 +186,8 @@ void autonomous()
 		break;
 	case 1: // Left Side Fast Neutral and score hg
 		liftControl->flipDisable(false);
-		drive->turnAngle(10_deg);
+		//drive->turnAngle(10_deg);
+		drive->resetController();
 		liftControl->setTarget(95);
 		//pros::delay(50);
 		//liftControl->waitUntilSettled();
@@ -221,7 +224,8 @@ void autonomous()
 	case 2: // Right Side Fast neutral and score hg
 		liftControl->flipDisable(false);
 		liftControl->setTarget(95);
-		drive->turnAngle(0_deg);
+		//drive->turnAngle(0_deg);
+		drive->resetController();
 		//pros::delay(650);
 		drive->moveDistance(45_in);
 		liftControl->setTarget(55);

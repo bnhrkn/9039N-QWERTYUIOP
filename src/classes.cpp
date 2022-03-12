@@ -164,9 +164,17 @@ void cChassisControllerPID::trampoline(void *context)
     }
 }
 
-void cChassisControllerPID::reset()
+void cChassisControllerPID::resetController()
 {
-    distancePid.reset();
-    turnPid.reset();
-    anglePid.reset();
+    distancePid->reset();
+    turnPid->reset();
+    anglePid->reset();
+
+    distancePid->flipDisable(true);
+    turnPid->flipDisable(true);
+    anglePid->flipDisable(true);
+
+    distancePid->setTarget(0);
+    turnPid->setTarget(0);
+    anglePid->setTarget(0);
 }
