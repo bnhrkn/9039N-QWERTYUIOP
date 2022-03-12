@@ -178,3 +178,15 @@ void cChassisControllerPID::resetController()
     turnPid->setTarget(0);
     anglePid->setTarget(0);
 }
+void cChassisControllerPID::moveDistance(const okapi::QLength itarget)
+{
+    moveDistanceAsync(itarget);
+    pros::delay(40);
+    waitUntilSettled();
+}
+void cChassisControllerPID::turnAngle(const okapi::QAngle idegTarget)
+{
+    turnAngleAsync(idegTarget);
+    pros::delay(40);
+    waitUntilSettled();
+}

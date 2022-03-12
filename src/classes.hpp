@@ -52,6 +52,8 @@ public:
     void startThread();
     static void trampoline(void *context);
     void resetController();
+    void moveDistance(const okapi::QLength itarget);
+    void turnAngle(const okapi::QAngle idegtarget);
 };
 
 class cRotationSensor : public okapi::RotationSensor
