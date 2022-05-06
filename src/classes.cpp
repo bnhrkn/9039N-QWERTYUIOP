@@ -164,7 +164,7 @@ void cChassisControllerPID::trampoline(void *context)
     }
 }
 
-void cChassisControllerPID::resetController()
+void cChassisControllerPID::resetController(int distTarget, int turnTarget, int angleTarget)
 {
     distancePid->reset();
     turnPid->reset();
@@ -174,9 +174,9 @@ void cChassisControllerPID::resetController()
     turnPid->flipDisable(true);
     anglePid->flipDisable(true);
 
-    distancePid->setTarget(0);
-    turnPid->setTarget(0);
-    anglePid->setTarget(0);
+    distancePid->setTarget(distTarget);
+    turnPid->setTarget(turnTarget * scales.turn);
+    anglePid->setTarget(angleTarget * scales.turn);
 }
 void cChassisControllerPID::moveDistance(const okapi::QLength itarget)
 {

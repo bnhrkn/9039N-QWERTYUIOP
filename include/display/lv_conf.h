@@ -117,12 +117,12 @@
  *================*/
 #define LV_THEME_LIVE_UPDATE 1
 #define USE_LV_THEME_TEMPL 0 /*Just for test*/
-#define USE_LV_THEME_DEFAULT 1 /*Built mainly from the built-in styles. Consumes very few RAM*/
+#define USE_LV_THEME_DEFAULT 0 /*Built mainly from the built-in styles. Consumes very few RAM*/
 #define USE_LV_THEME_ALIEN 1 /*Dark futuristic theme*/
 #define USE_LV_THEME_NIGHT 1 /*Dark elegant theme*/
-#define USE_LV_THEME_MONO 0 /*Mono color theme for monochrome displays*/
+#define USE_LV_THEME_MONO 1 /*Mono color theme for monochrome displays*/
 #define USE_LV_THEME_MATERIAL 1 /*Flat theme with bold colors and light shadows*/
-#define USE_LV_THEME_ZEN 0 /*Peaceful, mainly light theme */
+#define USE_LV_THEME_ZEN 1 /*Peaceful, mainly light theme */
 
 /*==================
  *    FONT USAGE
@@ -149,10 +149,10 @@
 #define USE_LV_FONT_DEJAVU_30_CYRILLIC 0
 #define USE_LV_FONT_SYMBOL_30 0
 
-#define USE_LV_FONT_DEJAVU_40 4
+#define USE_LV_FONT_DEJAVU_40 0
 #define USE_LV_FONT_DEJAVU_40_LATIN_SUP 0
 #define USE_LV_FONT_DEJAVU_40_CYRILLIC 0
-#define USE_LV_FONT_SYMBOL_40 4
+#define USE_LV_FONT_SYMBOL_40 0
 
 /* PROS adds the mono variant of DejaVu sans */
 #define USE_PROS_FONT_DEJAVU_MONO_10 4

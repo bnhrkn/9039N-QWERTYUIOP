@@ -51,7 +51,7 @@ public:
     void loop();
     void startThread();
     static void trampoline(void *context);
-    void resetController();
+    void resetController(int distTarget = 0, int turnTarget = 0, int angleTarget = 0); // Angle values are given in degrees and converted to motor ticks
     void moveDistance(const okapi::QLength itarget);
     void turnAngle(const okapi::QAngle idegtarget);
 };

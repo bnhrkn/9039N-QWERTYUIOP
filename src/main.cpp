@@ -188,7 +188,7 @@ void autonomous()
 	case 1: // Left Side Fast Neutral and score hg
 		liftControl->flipDisable(false);
 		//drive->turnAngle(10_deg);
-		drive->resetController();
+		drive->resetController(0, 10, 10);
 		liftControl->setTarget(95);
 		//pros::delay(50);
 		//liftControl->waitUntilSettled();
@@ -230,12 +230,13 @@ void autonomous()
 		//pros::delay(650);
 		drive->moveDistance(45_in);
 		liftControl->setTarget(55);
-		pros::delay(250);
+		pros::delay(40);
+		liftControl->waitUntilSettled();
 		drive->moveDistance(-47_in);
 		liftControl->setTarget(95);
 		drive->turnAngle(45_deg);
 		liftControl->waitUntilSettled();
-		drive->moveDistance(22_in);
+		drive->moveDistance(25_in);
 		liftControl->setTarget(55);
 		pros::delay(500);
 		cXDriveTrain->driveVector(-150, 0);
